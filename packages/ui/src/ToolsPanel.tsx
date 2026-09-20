@@ -1,0 +1,104 @@
+import React from 'react';
+
+export type ActiveTool = 'files' | 'chat' | 'call' | 'users' | 'ai' | 'whiteboard' | 'recordings' | 'settings' | null;
+
+interface ToolsPanelProps {
+  activeTool: ActiveTool;
+  onSelectTool: (tool: ActiveTool) => void;
+  unreadCount?: number;
+  onlineUsersCount?: number;
+}
+
+const FilesIcon = () => (
+  <svg className="w-5 h-5 fill-none stroke-current stroke-2" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25A2.25 2.25 0 018.25 10.5H6A2.25 2.25 0 013.75 8.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25A2.25 2.25 0 0113.5 8.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
+  </svg>
+);
+
+const ChatIcon = () => (
+  <svg className="w-5 h-5 fill-none stroke-current stroke-2" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.27z" />
+  </svg>
+);
+
+const CallIcon = () => (
+  <svg className="w-5 h-5 fill-none stroke-current stroke-2" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 10.5l4.72-4.72a.75.75 0 011.28.53v11.38a.75.75 0 01-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25h-9A2.25 2.25 0 002.25 7.5v9a2.25 2.25 0 002.25 2.25z" />
+  </svg>
+);
+
+const UsersIcon = () => (
+  <svg className="w-5 h-5 fill-none stroke-current stroke-2" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
+  </svg>
+);
+
+const AiIcon = () => (
+  <svg className="w-5 h-5 fill-none stroke-current stroke-2" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" />
+  </svg>
+);
+
+const WhiteboardIcon = () => (
+  <svg className="w-5 h-5 fill-none stroke-current stroke-2" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" />
+  </svg>
+);
+
+const RecordingsIcon = () => (
+  <svg className="w-5 h-5 fill-none stroke-current stroke-2" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.985V5.653z" />
+  </svg>
+);
+
+const SettingsIcon = () => (
+  <svg className="w-5 h-5 fill-none stroke-current stroke-2" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z" />
+    <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+  </svg>
+);
+
+export const ToolsPanel: React.FC<ToolsPanelProps> = ({
+  activeTool,
+  onSelectTool,
+  unreadCount = 0,
+  onlineUsersCount = 0,
+}) => {
+  const tools = [
+    { id: 'files', label: 'Explorer', icon: <FilesIcon /> },
+    { id: 'chat', label: 'Chat', icon: <ChatIcon />, badge: unreadCount },
+    { id: 'call', label: 'Call', icon: <CallIcon /> },
+    { id: 'users', label: 'Users', icon: <UsersIcon />, badge: onlineUsersCount },
+    { id: 'ai', label: 'AI Pair', icon: <AiIcon /> },
+    { id: 'whiteboard', label: 'Whiteboard', icon: <WhiteboardIcon /> },
+    { id: 'recordings', label: 'Recordings', icon: <RecordingsIcon /> },
+    { id: 'settings', label: 'Settings', icon: <SettingsIcon /> },
+  ] as const;
+
+  return (
+    <aside className="w-14 bg-gray-950 border-r border-gray-800 flex flex-col items-center py-3 gap-2 shrink-0 select-none z-20">
+      {tools.map((t) => {
+        const isActive = activeTool === t.id;
+        return (
+          <button
+            key={t.id}
+            onClick={() => onSelectTool(isActive ? null : (t.id as ActiveTool))}
+            className={`relative p-2.5 rounded-xl transition-all ${
+              isActive
+                ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 shadow-sm'
+                : 'text-gray-400 hover:text-gray-200 hover:bg-gray-900 border border-transparent'
+            }`}
+            title={t.label}
+          >
+            {t.icon}
+            {Boolean(t.badge && t.badge > 0) && (
+              <span className="absolute -top-1 -right-1 px-1.5 py-0.2 bg-indigo-500 text-white rounded-full text-[9px] font-bold font-mono shadow-sm">
+                {t.badge}
+              </span>
+            )}
+          </button>
+        );
+      })}
+    </aside>
+  );
+};
