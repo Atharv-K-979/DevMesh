@@ -11,8 +11,11 @@ import { Server, Socket } from 'socket.io';
 import {
   SocketActions,
   JoinPayload,
+  SendChatMessagePayload,
+  ChatMessage,
   ClientInfo,
 } from '@devmesh/shared-types';
+import { randomUUID } from 'crypto';
 
 @WebSocketGateway({
   cors: {
@@ -23,8 +26,9 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server!: Server;
 
-  protected userSocketMap: Record<string, string> = {};
-  protected socketRoomMap: Record<string, string> = {};
+  private userSocketMap: Record<string, string> = {};
+  private socketRoomMap: Record<string, string> = {};
+  private roomChatHistory: Map<string, ChatMessage[]> = new Map();
 
   handleConnection(client: Socket) {
     console.log(`Client connected: ${client.id}`);
@@ -45,13 +49,29 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect {
         clients: updatedClients,
       });
 
-      this.onUserLeftRoom(roomId, username, client.id);
+      const leaveSystemMsg: ChatMessage = {
+        id: randomUUID(),
+        roomId,
+        senderId: 'system',
+        senderName: 'System',
+        content: `${username} left the room`,
+        timestamp: Date.now(),
+      };
+
+      if (!this.roomChatHistory.has(roomId)) {
+        this.roomChatHistory.set(roomId, []);
+      }
+      const history = this.roomChatHistory.get(roomId)!;
+      history.push(leaveSystemMsg);
+      if (history.length > 100) history.shift();
+
+      this.server.in(roomId).emit(SocketActions.CHAT_BROADCAST, leaveSystemMsg);
     }
 
     console.log(`Client disconnected: ${client.id}`);
   }
 
-  protected getAllConnectedClients(roomId: string, excludeSocketId?: string): ClientInfo[] {
+  private getAllConnectedClients(roomId: string, excludeSocketId?: string): ClientInfo[] {
     const room = this.server.sockets.adapter.rooms.get(roomId);
     if (!room) return [];
 
@@ -62,7 +82,7 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect {
         username: this.userSocketMap[socketId],
       }));
 
-    // Deduplicate by username so each participant appears once in the active roster
+    // Deduplicate by username so participants are unique in active list
     const uniqueMap = new Map<string, ClientInfo>();
     for (const client of rawClients) {
       uniqueMap.set(client.username, client);
@@ -82,42 +102,86 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     const clients = this.getAllConnectedClients(roomId);
 
-    // Broadcast updated participant roster to all room members
+    // Notify all participants in room of the joined member
     this.server.in(roomId).emit(SocketActions.JOINED, {
       clients,
       username,
       socketId: client.id,
     });
 
-    this.onUserJoinedRoom(roomId, username, client);
+    const joinSystemMsg: ChatMessage = {
+      id: randomUUID(),
+      roomId,
+      senderId: 'system',
+      senderName: 'System',
+      content: `${username} joined the room`,
+      timestamp: Date.now(),
+    };
+
+    if (!this.roomChatHistory.has(roomId)) {
+      this.roomChatHistory.set(roomId, []);
+    }
+    const history = this.roomChatHistory.get(roomId)!;
+    history.push(joinSystemMsg);
+    if (history.length > 100) history.shift();
+
+    this.server.in(roomId).emit(SocketActions.CHAT_BROADCAST, joinSystemMsg);
+
+    // Deliver chat history to newly joined user
+    client.emit(SocketActions.CHAT_HISTORY, { messages: history });
   }
 
-  @SubscribeMessage(SocketActions.LEAVE)
-  handleLeave(
+  @SubscribeMessage(SocketActions.CHAT_SEND)
+  handleChatMessage(
     @ConnectedSocket() client: Socket,
-    @MessageBody() payload: { roomId: string },
+    @MessageBody() payload: SendChatMessagePayload,
   ) {
-    const roomId = payload?.roomId || this.socketRoomMap[client.id];
-    const username = this.userSocketMap[client.id];
+    const { roomId, content, senderName } = payload;
 
-    if (roomId) {
-      client.leave(roomId);
-      delete this.socketRoomMap[client.id];
+    const chatMsg: ChatMessage = {
+      id: randomUUID(),
+      roomId,
+      senderId: client.id,
+      senderName: senderName || this.userSocketMap[client.id] || 'Anonymous',
+      content,
+      timestamp: Date.now(),
+    };
 
-      const updatedClients = this.getAllConnectedClients(roomId, client.id);
-      this.server.in(roomId).emit(SocketActions.DISCONNECTED, {
-        socketId: client.id,
-        username: username || 'Anonymous',
-        clients: updatedClients,
-      });
+    if (!this.roomChatHistory.has(roomId)) {
+      this.roomChatHistory.set(roomId, []);
+    }
+    const history = this.roomChatHistory.get(roomId)!;
+    history.push(chatMsg);
+    if (history.length > 100) history.shift();
 
-      if (username) {
-        this.onUserLeftRoom(roomId, username, client.id);
-      }
+    this.server.in(roomId).emit(SocketActions.CHAT_BROADCAST, chatMsg);
+  }
+
+  @SubscribeMessage(SocketActions.RECORDING_NOTIFY)
+  handleRecordingNotify(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() payload: { roomId: string; username: string; action: 'start' | 'stop'; title?: string },
+  ) {
+    this.server.in(payload.roomId).emit(SocketActions.RECORDING_NOTIFY, payload);
+  }
+
+  @SubscribeMessage(SocketActions.USER_MUTE)
+  handleUserMute(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() payload: { roomId: string; targetSocketId: string; targetUsername: string; mute: boolean; byUsername: string },
+  ) {
+    this.server.in(payload.roomId).emit(SocketActions.USER_MUTE, payload);
+  }
+
+  @SubscribeMessage(SocketActions.USER_KICK)
+  handleUserKick(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() payload: { roomId: string; targetSocketId: string; targetUsername: string; byUsername: string },
+  ) {
+    this.server.in(payload.roomId).emit(SocketActions.USER_KICK, payload);
+    const targetClient = this.server.sockets.sockets.get(payload.targetSocketId);
+    if (targetClient) {
+      targetClient.leave(payload.roomId);
     }
   }
-
-  // Lifecycle hooks extensible by chat/controls layer
-  protected onUserJoinedRoom(roomId: string, username: string, client: Socket) {}
-  protected onUserLeftRoom(roomId: string, username: string, socketId: string) {}
 }
