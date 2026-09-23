@@ -60,13 +60,27 @@ devmesh/
 
 ### Environment Configuration
 
-Copy the example environment configuration to set up your local environment:
+The monorepo uses environment files for configuration:
 
-```bash
-cp .env.example .env.local
-```
+- `.env.example`: Reference template containing all variable names and safe defaults.
+- `.env.local`: Local development configuration with working endpoints for local services.
+- `.env`: Machine-specific deployment settings (kept uncommitted).
 
-Configure your local environment variables in `.env.local` as needed.
+Key environment variables:
+
+| Variable | Default (Local) | Purpose |
+| :--- | :--- | :--- |
+| `PORT` | `3001` | HTTP port for NestJS API Gateway |
+| `COLLAB_PORT` | `1234` | WebSocket port for Hocuspocus CRDT Server |
+| `DATABASE_URL` | `postgresql://postgres:postgres@localhost:5432/devmesh` | PostgreSQL database connection string |
+| `REDIS_URL` | `redis://localhost:6379` | Redis connection URL for presence and cache |
+| `LIVEKIT_URL` | `ws://localhost:7880` | LiveKit media server URL |
+| `LIVEKIT_API_KEY` | `devkey` | LiveKit server API key |
+| `LIVEKIT_API_SECRET` | `secret` | LiveKit server API secret |
+| `OPENAI_API_KEY` | `sk-placeholder` | OpenAI API key for AI assistant features |
+| `ANTHROPIC_API_KEY` | `sk-ant-placeholder` | Anthropic Claude API key for AI assistant |
+| `VITE_API_URL` | `http://localhost:3001` | Client API endpoint |
+| `VITE_COLLAB_WS_URL` | `ws://localhost:1234` | Client Hocuspocus WebSocket endpoint |
 
 ### Infrastructure Setup
 
@@ -112,6 +126,13 @@ Run test suites:
 pnpm run test
 ```
 
+Target specific test suites:
+
+```bash
+pnpm --filter @devmesh/api test      # Run Vitest API unit tests
+pnpm --filter @devmesh/collab test   # Run Vitest collaboration server tests
+```
+
 Lint workspace packages:
 
 ```bash
@@ -138,22 +159,30 @@ pnpm run format
 
 ## API Overview
 
-### Authentication & Rooms
-- `POST /auth/login`: Issue user session token
-- `GET /rooms/:roomId`: Fetch room metadata and active participants
-- `POST /rooms/:roomId/join`: Join room session
+### Authentication
+- `POST /api/auth/login`: Authenticate or generate user session token
+- `GET /api/auth/verify`: Validate bearer token header
 
-### Signaling & Media
-- `POST /livekit/token`: Generate authenticated WebRTC room token
+### Signaling & Media Call
+- `POST /api/livekit/token`: Generate signed WebRTC access token for room participant
 
-### AI Assistance
-- `POST /ai/completion`: Prompt AI assistant for code explanation, refactor, or generation
+### AI Pair Programmer
+- `POST /api/ai/completion`: Request code explanation, generation, refactoring, or bug fixing
 
-### Persistence & Storage
-- `GET /recordings/:roomId`: List session recordings
-- `POST /recordings/:roomId/start`: Start recording session
-- `POST /recordings/:recordingId/stop`: Stop and persist recording session
-- `GET /projects/:projectId/export`: Export workspace archive
+### Session Recordings
+- `POST /api/recordings/start`: Initiate a new recording session
+- `POST /api/recordings/stop`: Finalize session recording
+- `POST /api/recordings/event`: Ingest timeline event (code keystrokes, chat messages)
+- `GET /api/recordings/room/:roomId`: List recordings for a given room
+- `GET /api/recordings/:id`: Retrieve recording detail and full event history
+
+### Document Persistence
+- `POST /api/persistence/snapshot`: Persist CRDT document state snapshot
+- `GET /api/persistence/snapshot/:roomId/:documentName`: Retrieve document snapshot
+
+### Realtime WebSockets
+- `ws://localhost:1234`: Hocuspocus Yjs CRDT synchronization and awareness
+- `ws://localhost:3001/socket.io`: Room membership, realtime chat messages, mute, and kick events
 
 ## License
 
