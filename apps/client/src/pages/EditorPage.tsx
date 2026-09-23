@@ -286,6 +286,11 @@ export const EditorPage: React.FC = () => {
     }
   };
 
+  const handleCreateFolder = (folderPath: string) => {
+    const placeholder = `${folderPath}/index.ts`;
+    handleCreateFile(placeholder);
+  };
+
   const handleDeleteFile = (filePath: string) => {
     const filesArray = doc.getArray<string>('projectFiles');
     const current = filesArray.toArray();
@@ -588,6 +593,7 @@ export const EditorPage: React.FC = () => {
                 activeFile={activeFile}
                 onSelectFile={handleSelectFile}
                 onCreateFile={handleCreateFile}
+                onCreateFolder={handleCreateFolder}
                 onDeleteFile={handleDeleteFile}
                 onRenameFile={handleRenameFile}
                 onExportZip={handleExportZip}

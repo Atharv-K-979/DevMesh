@@ -19,6 +19,18 @@ const UploadIcon = () => (
   </svg>
 );
 
+const FolderIcon = () => (
+  <svg className="w-3.5 h-3.5 fill-none stroke-current stroke-2" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z" />
+  </svg>
+);
+
+const EditIcon = () => (
+  <svg className="w-3 h-3 fill-none stroke-current stroke-2" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" />
+  </svg>
+);
+
 const getFileIcon = (fileName: string) => {
   const ext = fileName.split('.').pop()?.toLowerCase();
   switch (ext) {
@@ -48,21 +60,49 @@ export const FileTree: React.FC<FileTreeProps> = ({
   activeFile,
   onSelectFile,
   onCreateFile,
+  onCreateFolder,
   onDeleteFile,
+  onRenameFile,
   onExportZip,
   onImportZip,
   onUploadClick,
 }) => {
-  const [newFileName, setNewFileName] = useState('');
-  const [isCreating, setIsCreating] = useState(false);
+  const [itemName, setItemName] = useState('');
+  const [createType, setCreateType] = useState<'file' | 'folder' | null>(null);
+  const [editingFile, setEditingFile] = useState<string | null>(null);
+  const [renamedName, setRenamedName] = useState('');
 
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newFileName.trim()) return;
-    const cleanName = newFileName.trim().startsWith('/') ? newFileName.trim().slice(1) : newFileName.trim();
-    onCreateFile(cleanName);
-    setNewFileName('');
-    setIsCreating(false);
+    if (!itemName.trim()) return;
+    const cleanName = itemName.trim().replace(/^\/+|\/+$/g, '');
+    if (createType === 'folder' && onCreateFolder) {
+      onCreateFolder(cleanName);
+    } else {
+      onCreateFile(cleanName);
+    }
+    setItemName('');
+    setCreateType(null);
+  };
+
+  const handleStartRename = (filePath: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditingFile(filePath);
+    setRenamedName(filePath);
+  };
+
+  const handleSaveRename = (oldPath: string, e: React.FormEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!renamedName.trim() || renamedName.trim() === oldPath) {
+      setEditingFile(null);
+      return;
+    }
+    const cleanNewName = renamedName.trim().replace(/^\/+|\/+$/g, '');
+    if (onRenameFile) {
+      onRenameFile(oldPath, cleanNewName);
+    }
+    setEditingFile(null);
   };
 
   const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -92,25 +132,48 @@ export const FileTree: React.FC<FileTreeProps> = ({
               <UploadIcon />
             </button>
           )}
+          {onCreateFolder && (
+            <button
+              onClick={() => setCreateType(createType === 'folder' ? null : 'folder')}
+              className={`p-1 hover:bg-gray-800 rounded transition-colors text-xs font-semibold ${
+                createType === 'folder' ? 'text-indigo-400 bg-gray-800' : 'text-gray-400 hover:text-indigo-400'
+              }`}
+              title="New Folder"
+            >
+              <FolderIcon />
+            </button>
+          )}
           <button
-            onClick={() => setIsCreating(!isCreating)}
-            className="p-1 hover:bg-gray-800 text-gray-400 hover:text-indigo-400 rounded transition-colors text-xs font-semibold"
-            title="Create New File"
+            onClick={() => setCreateType(createType === 'file' ? null : 'file')}
+            className={`p-1 hover:bg-gray-800 rounded transition-colors text-xs font-semibold ${
+              createType === 'file' ? 'text-indigo-400 bg-gray-800' : 'text-gray-400 hover:text-indigo-400'
+            }`}
+            title="New File"
           >
             <span className="text-sm leading-none">+</span>
           </button>
         </div>
       </div>
 
-      {/* New File Creation Form */}
-      {isCreating && (
+      {/* New Item Creation Form */}
+      {createType && (
         <form onSubmit={handleCreate} className="p-2.5 bg-gray-900/90 border-b border-gray-800 space-y-2">
+          <div className="flex items-center justify-between text-[10px] text-gray-400 font-mono">
+            <span>Creating new {createType}:</span>
+            <button
+              type="button"
+              onClick={() => setCreateType(null)}
+              className="text-gray-500 hover:text-gray-300"
+            >
+              Cancel
+            </button>
+          </div>
           <div className="flex gap-2">
             <input
               type="text"
-              placeholder="e.g. index.ts or utils.js"
-              value={newFileName}
-              onChange={(e) => setNewFileName(e.target.value)}
+              placeholder={createType === 'folder' ? 'e.g. src/utils' : 'e.g. index.ts or components/App.tsx'}
+              value={itemName}
+              onChange={(e) => setItemName(e.target.value)}
               className="flex-1 bg-gray-950 text-xs px-2.5 py-1.5 border border-gray-700 rounded-lg text-gray-100 focus:outline-none focus:border-indigo-500 font-mono"
               autoFocus
             />
@@ -134,6 +197,32 @@ export const FileTree: React.FC<FileTreeProps> = ({
           files.map((filePath) => {
             const isActive = activeFile === filePath;
             const meta = getFileIcon(filePath);
+            const isEditing = editingFile === filePath;
+
+            if (isEditing) {
+              return (
+                <form
+                  key={filePath}
+                  onSubmit={(e) => handleSaveRename(filePath, e)}
+                  className="p-1.5 bg-gray-900 rounded-lg border border-indigo-500 flex items-center gap-1"
+                >
+                  <input
+                    type="text"
+                    value={renamedName}
+                    onChange={(e) => setRenamedName(e.target.value)}
+                    className="flex-1 bg-gray-950 text-xs px-2 py-1 rounded text-white font-mono border border-gray-700 focus:outline-none"
+                    autoFocus
+                    onBlur={(e) => handleSaveRename(filePath, e)}
+                  />
+                  <button
+                    type="submit"
+                    className="px-2 py-1 text-[10px] bg-indigo-600 text-white rounded font-semibold"
+                  >
+                    Save
+                  </button>
+                </form>
+              );
+            }
 
             return (
               <div
@@ -151,10 +240,20 @@ export const FileTree: React.FC<FileTreeProps> = ({
                   <span className="truncate font-mono text-xs">{filePath}</span>
                 </div>
 
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1">
                   <span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-gray-950 border border-gray-800 ${meta.color}`}>
                     {meta.tag}
                   </span>
+
+                  {onRenameFile && (
+                    <button
+                      onClick={(e) => handleStartRename(filePath, e)}
+                      className="opacity-0 group-hover:opacity-100 p-1 hover:bg-gray-800 hover:text-indigo-300 text-gray-500 rounded transition-all"
+                      title="Rename File"
+                    >
+                      <EditIcon />
+                    </button>
+                  )}
 
                   {files.length > 1 && (
                     <button
