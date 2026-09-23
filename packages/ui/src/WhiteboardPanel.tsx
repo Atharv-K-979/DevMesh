@@ -66,6 +66,27 @@ export const WhiteboardPanel: React.FC<WhiteboardPanelProps> = ({
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
 
+    if (tool === 'text') {
+      const text = window.prompt('Enter text to place on whiteboard:');
+      if (text && text.trim()) {
+        const newEl: WhiteboardElement = {
+          id: Math.random().toString(36).substring(7),
+          type: 'text',
+          x,
+          y,
+          text: text.trim(),
+          color,
+          strokeWidth,
+        };
+        const updated = [...elements, newEl];
+        setElements(updated);
+        if (onElementsChange) {
+          onElementsChange(updated);
+        }
+      }
+      return;
+    }
+
     setIsDrawing(true);
     if (tool === 'pencil') {
       setCurrentElement({
@@ -141,7 +162,7 @@ export const WhiteboardPanel: React.FC<WhiteboardPanelProps> = ({
       {/* Whiteboard Controls */}
       <div className="p-2 border-b border-gray-800 flex flex-wrap items-center justify-between gap-2 bg-gray-900/60">
         <div className="flex items-center gap-1">
-          {(['pencil', 'rectangle', 'circle'] as WhiteboardTool[]).map((t) => (
+          {(['pencil', 'rectangle', 'circle', 'text'] as WhiteboardTool[]).map((t) => (
             <button
               key={t}
               onClick={() => setTool(t)}
@@ -152,6 +173,24 @@ export const WhiteboardPanel: React.FC<WhiteboardPanelProps> = ({
               }`}
             >
               {t}
+            </button>
+          ))}
+        </div>
+
+        {/* Stroke width selector */}
+        <div className="flex items-center gap-1 text-[11px] font-mono text-gray-400">
+          <span>Width:</span>
+          {[2, 4, 8].map((w) => (
+            <button
+              key={w}
+              onClick={() => setStrokeWidth(w)}
+              className={`w-6 h-6 rounded flex items-center justify-center border text-xs transition-colors ${
+                strokeWidth === w
+                  ? 'border-indigo-500 bg-indigo-500/20 text-indigo-300 font-bold'
+                  : 'border-gray-800 hover:border-gray-700 text-gray-400'
+              }`}
+            >
+              {w}
             </button>
           ))}
         </div>
