@@ -7,6 +7,7 @@ interface UsersPanelProps {
   creatorUsername?: string;
   mutedUserSockets?: string[];
   onMuteUser?: (targetSocketId: string, targetUsername: string, mute: boolean) => void;
+  onMuteAll?: () => void;
   onKickUser?: (targetSocketId: string, targetUsername: string) => void;
 }
 
@@ -16,6 +17,7 @@ export const UsersPanel: React.FC<UsersPanelProps> = ({
   creatorUsername,
   mutedUserSockets = [],
   onMuteUser,
+  onMuteAll,
   onKickUser,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -26,12 +28,38 @@ export const UsersPanel: React.FC<UsersPanelProps> = ({
     client.username.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const handleKickWithConfirm = (socketId: string, targetUsername: string) => {
+    if (window.confirm(`Are you sure you want to remove ${targetUsername} from the room?`)) {
+      onKickUser?.(socketId, targetUsername);
+    }
+  };
+
   return (
     <div className="flex flex-col h-full bg-gray-950 text-gray-200">
       <div className="p-3 border-b border-gray-800 flex items-center justify-between">
         <span className="text-xs font-bold tracking-wider text-gray-400">Participants</span>
-        <span className="text-xs font-mono text-gray-500">{clients.length} online</span>
+        <div className="flex items-center gap-1.5">
+          <span className="text-xs font-mono text-gray-500">{clients.length} online</span>
+          {mutedUserSockets.length > 0 && (
+            <span className="text-[10px] font-mono bg-red-500/10 text-red-400 border border-red-500/20 px-1.5 py-0.2 rounded">
+              {mutedUserSockets.length} muted
+            </span>
+          )}
+        </div>
       </div>
+
+      {/* Admin Action Toolbar */}
+      {isCurrentUserAdmin && clients.length > 1 && onMuteAll && (
+        <div className="px-3 py-1.5 bg-gray-900 border-b border-gray-800 flex items-center justify-between text-xs">
+          <span className="text-[10px] font-mono text-gray-400">Admin Actions:</span>
+          <button
+            onClick={onMuteAll}
+            className="px-2 py-0.5 bg-red-600/20 hover:bg-red-600/30 text-red-300 border border-red-500/30 rounded text-[10px] font-semibold transition-colors"
+          >
+            Mute All Members
+          </button>
+        </div>
+      )}
 
       <div className="p-2 border-b border-gray-800">
         <input
@@ -75,6 +103,11 @@ export const UsersPanel: React.FC<UsersPanelProps> = ({
               </div>
 
               <div className="flex items-center gap-1.5">
+                {isMuted && (
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-500/20 text-red-300 font-mono">
+                    Muted
+                  </span>
+                )}
                 {isCurrentUserAdmin && !isSelf && (
                   <>
                     {onMuteUser && (
@@ -85,12 +118,12 @@ export const UsersPanel: React.FC<UsersPanelProps> = ({
                         }`}
                         title={isMuted ? 'Unmute User' : 'Mute User'}
                       >
-                        {isMuted ? 'Muted' : 'Mute'}
+                        {isMuted ? 'Unmute' : 'Mute'}
                       </button>
                     )}
                     {onKickUser && (
                       <button
-                        onClick={() => onKickUser(client.socketId, client.username)}
+                        onClick={() => handleKickWithConfirm(client.socketId, client.username)}
                         className="p-1 hover:bg-red-500/20 text-gray-400 hover:text-red-400 rounded text-xs transition-colors"
                         title="Remove Participant"
                       >

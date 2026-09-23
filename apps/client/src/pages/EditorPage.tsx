@@ -445,6 +445,15 @@ export const EditorPage: React.FC = () => {
     });
   };
 
+  const handleMuteAll = () => {
+    clients.forEach((c) => {
+      if (c.username !== username) {
+        handleMuteUser(c.socketId, c.username, true);
+      }
+    });
+    toast.success('Muted all participants');
+  };
+
   const handleKickUser = (targetSocketId: string, targetUsername: string) => {
     socketRef.current?.emit(SocketActions.USER_KICK, {
       roomId,
@@ -626,6 +635,7 @@ export const EditorPage: React.FC = () => {
                 creatorUsername={clients[0]?.username || username}
                 mutedUserSockets={mutedUserSockets}
                 onMuteUser={handleMuteUser}
+                onMuteAll={handleMuteAll}
                 onKickUser={handleKickUser}
               />
             )}
