@@ -664,6 +664,7 @@ export const EditorPage: React.FC = () => {
                 isRecording={isRecording}
                 onStartRecording={handleStartRecording}
                 onStopRecording={handleStopRecording}
+                onReplayCodeChange={updateEditorCode}
               />
             )}
 
