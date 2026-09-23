@@ -8,6 +8,107 @@ interface ChatPanelProps {
   roomUsers: string[];
 }
 
+const renderFormattedText = (text: string, currentUsername: string) => {
+  // Support code blocks, inline code, bold, italics, links, and @mentions
+  const lines = text.split('\n');
+  const elements: React.ReactNode[] = [];
+  let inCodeBlock = false;
+  let codeBlockContent: string[] = [];
+  let codeBlockLang = '';
+
+  lines.forEach((line, lineIdx) => {
+    if (line.startsWith('```')) {
+      if (!inCodeBlock) {
+        inCodeBlock = true;
+        codeBlockLang = line.slice(3).trim();
+        codeBlockContent = [];
+      } else {
+        inCodeBlock = false;
+        elements.push(
+          <div key={`codeblock-${lineIdx}`} className="my-1.5 rounded-lg bg-gray-950 border border-gray-800 p-2 font-mono text-[11px] overflow-x-auto text-indigo-200">
+            {codeBlockLang && <div className="text-[9px] uppercase tracking-wider text-gray-500 mb-1">{codeBlockLang}</div>}
+            <pre className="whitespace-pre-wrap">{codeBlockContent.join('\n')}</pre>
+          </div>
+        );
+      }
+      return;
+    }
+
+    if (inCodeBlock) {
+      codeBlockContent.push(line);
+      return;
+    }
+
+    // Parse inline tokens: `code`, **bold**, *italic*, @username
+    const parts: React.ReactNode[] = [];
+    const tokenRegex = /(`[^`]+`|\*\*[^*]+\*\*|\*[^*]+\*|@\w+|https?:\/\/[^\s]+)/g;
+    let lastIdx = 0;
+    let match: RegExpExecArray | null;
+
+    while ((match = tokenRegex.exec(line)) !== null) {
+      if (match.index > lastIdx) {
+        parts.push(line.slice(lastIdx, match.index));
+      }
+
+      const token = match[0];
+      if (token.startsWith('`') && token.endsWith('`')) {
+        parts.push(
+          <code key={`code-${lineIdx}-${match.index}`} className="px-1 py-0.5 bg-black/40 rounded text-[11px] font-mono text-amber-300">
+            {token.slice(1, -1)}
+          </code>
+        );
+      } else if (token.startsWith('**') && token.endsWith('**')) {
+        parts.push(
+          <strong key={`b-${lineIdx}-${match.index}`} className="font-bold text-white">
+            {token.slice(2, -2)}
+          </strong>
+        );
+      } else if (token.startsWith('*') && token.endsWith('*')) {
+        parts.push(
+          <em key={`i-${lineIdx}-${match.index}`} className="italic">
+            {token.slice(1, -1)}
+          </em>
+        );
+      } else if (token.startsWith('@')) {
+        const isMe = token.slice(1) === currentUsername;
+        parts.push(
+          <span key={`mention-${lineIdx}-${match.index}`} className={`px-1 rounded font-semibold font-mono text-[11px] ${isMe ? 'bg-amber-400 text-gray-950 font-bold' : 'text-indigo-300 bg-indigo-950/60'}`}>
+            {token}
+          </span>
+        );
+      } else if (token.startsWith('http')) {
+        parts.push(
+          <a key={`link-${lineIdx}-${match.index}`} href={token} target="_blank" rel="noreferrer" className="text-indigo-400 underline hover:text-indigo-300 break-all">
+            {token}
+          </a>
+        );
+      }
+
+      lastIdx = tokenRegex.lastIndex;
+    }
+
+    if (lastIdx < line.length) {
+      parts.push(line.slice(lastIdx));
+    }
+
+    elements.push(
+      <p key={`line-${lineIdx}`} className={lineIdx > 0 ? 'mt-1' : ''}>
+        {parts.length > 0 ? parts : line}
+      </p>
+    );
+  });
+
+  if (inCodeBlock && codeBlockContent.length > 0) {
+    elements.push(
+      <pre key="unclosed-code" className="my-1 rounded bg-gray-950 p-2 font-mono text-[11px] overflow-x-auto text-indigo-200">
+        {codeBlockContent.join('\n')}
+      </pre>
+    );
+  }
+
+  return elements;
+};
+
 export const ChatPanel: React.FC<ChatPanelProps> = ({
   messages,
   currentUsername,
@@ -117,7 +218,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
                       : 'bg-gray-800 text-gray-200 border border-gray-700'
                   }`}
                 >
-                  {msg.content}
+                  {renderFormattedText(msg.content, currentUsername)}
                 </div>
               </div>
             );
