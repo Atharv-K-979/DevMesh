@@ -102,17 +102,42 @@ export const CallPanel: React.FC<CallPanelProps> = ({ roomId, username, onFetchT
             </button>
           </div>
         ) : (
-          <div className="w-full h-full flex flex-col justify-between">
-            {/* Participant Video Placeholders */}
-            <div className="grid grid-cols-2 gap-2 flex-1 items-center">
-              <div className="h-36 bg-gray-900 border border-gray-800 rounded-xl flex flex-col items-center justify-center relative overflow-hidden">
-                <div className="w-10 h-10 rounded-full bg-indigo-600 text-white font-bold flex items-center justify-center text-sm mb-2">
-                  {username.substring(0, 2).toUpperCase()}
+            {/* Participant Video & Screen Share Stage */}
+            <div className="flex-1 flex flex-col gap-2 overflow-y-auto">
+              {isSharing && (
+                <div className="bg-gray-900 border border-indigo-500/50 rounded-xl p-3 flex flex-col items-center justify-center relative overflow-hidden">
+                  <div className="flex items-center justify-between w-full mb-2">
+                    <span className="text-[11px] font-semibold text-indigo-300 flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></span>
+                      You are sharing your screen
+                    </span>
+                    <button
+                      onClick={() => setIsSharing(false)}
+                      className="px-2 py-0.5 bg-red-600/20 hover:bg-red-600/30 text-red-300 border border-red-500/30 rounded text-[10px] font-mono transition-colors"
+                    >
+                      Stop Sharing
+                    </button>
+                  </div>
+                  <div className="w-full h-32 bg-gray-950/80 rounded-lg border border-gray-800 flex items-center justify-center flex-col gap-1 text-gray-500">
+                    <ScreenShareIcon />
+                    <span className="text-[10px] font-mono">DevMesh Screen Stream Active</span>
+                  </div>
                 </div>
-                <span className="text-xs font-medium text-gray-300">{username} (You)</span>
-                <span className="absolute bottom-2 left-2 text-[10px] text-gray-500 font-mono">
-                  {isMicOn ? 'Unmuted' : 'Muted'}
-                </span>
+              )}
+
+              <div className="grid grid-cols-2 gap-2 flex-1 items-center">
+                <div className="h-36 bg-gray-900 border border-gray-800 rounded-xl flex flex-col items-center justify-center relative overflow-hidden">
+                  <div className="w-10 h-10 rounded-full bg-indigo-600 text-white font-bold flex items-center justify-center text-sm mb-2 shadow-sm">
+                    {username.substring(0, 2).toUpperCase()}
+                  </div>
+                  <span className="text-xs font-medium text-gray-300">{username} (You)</span>
+                  <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between text-[10px] text-gray-500 font-mono">
+                    <span className={isMicOn ? 'text-emerald-400' : 'text-red-400'}>
+                      {isMicOn ? '● Audio Active' : '● Muted'}
+                    </span>
+                    <span>{isCameraOn ? 'Cam On' : 'Cam Off'}</span>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -121,7 +146,7 @@ export const CallPanel: React.FC<CallPanelProps> = ({ roomId, username, onFetchT
               <button
                 onClick={() => setIsMicOn(!isMicOn)}
                 className={`p-2.5 rounded-xl border transition-colors ${
-                  isMicOn ? 'bg-gray-800 border-gray-700 text-gray-200' : 'bg-red-500/20 border-red-500/30 text-red-400'
+                  isMicOn ? 'bg-gray-800 border-gray-700 text-gray-200 hover:bg-gray-750' : 'bg-red-500/20 border-red-500/30 text-red-400'
                 }`}
                 title={isMicOn ? 'Mute Mic' : 'Unmute Mic'}
               >
@@ -131,7 +156,7 @@ export const CallPanel: React.FC<CallPanelProps> = ({ roomId, username, onFetchT
               <button
                 onClick={() => setIsCameraOn(!isCameraOn)}
                 className={`p-2.5 rounded-xl border transition-colors ${
-                  isCameraOn ? 'bg-gray-800 border-gray-700 text-gray-200' : 'bg-red-500/20 border-red-500/30 text-red-400'
+                  isCameraOn ? 'bg-gray-800 border-gray-700 text-gray-200 hover:bg-gray-750' : 'bg-red-500/20 border-red-500/30 text-red-400'
                 }`}
                 title={isCameraOn ? 'Stop Camera' : 'Start Camera'}
               >
@@ -141,7 +166,7 @@ export const CallPanel: React.FC<CallPanelProps> = ({ roomId, username, onFetchT
               <button
                 onClick={() => setIsSharing(!isSharing)}
                 className={`p-2.5 rounded-xl border transition-colors ${
-                  isSharing ? 'bg-indigo-600 border-indigo-500 text-white' : 'bg-gray-800 border-gray-700 text-gray-200'
+                  isSharing ? 'bg-indigo-600 border-indigo-500 text-white shadow-md' : 'bg-gray-800 border-gray-700 text-gray-200 hover:bg-gray-750'
                 }`}
                 title="Share Screen"
               >
