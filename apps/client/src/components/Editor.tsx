@@ -23,16 +23,43 @@ interface EditorProps {
   onCodeChange?: (code: string) => void;
 }
 
-const mapLanguageName = (lang: string): LanguageName => {
-  switch (lang) {
-    case 'clike':
-      return 'cpp' as LanguageName;
-    case 'htmlmixed':
-      return 'html' as LanguageName;
+const detectLanguage = (filePath: string, fallbackLang: string): LanguageName => {
+  const ext = filePath.split('.').pop()?.toLowerCase();
+  switch (ext) {
+    case 'ts':
+    case 'tsx':
+      return 'typescript' as LanguageName;
     case 'js':
+    case 'jsx':
       return 'javascript' as LanguageName;
+    case 'py':
+      return 'python' as LanguageName;
+    case 'cpp':
+    case 'cc':
+    case 'c':
+    case 'h':
+    case 'hpp':
+      return 'cpp' as LanguageName;
+    case 'java':
+      return 'java' as LanguageName;
+    case 'html':
+      return 'html' as LanguageName;
+    case 'css':
+      return 'css' as LanguageName;
+    case 'json':
+      return 'json' as LanguageName;
+    case 'md':
+      return 'markdown' as LanguageName;
+    case 'sql':
+      return 'sql' as LanguageName;
+    case 'rs':
+      return 'rust' as LanguageName;
+    case 'go':
+      return 'go' as LanguageName;
     default:
-      return (lang as LanguageName) || ('javascript' as LanguageName);
+      if (fallbackLang === 'clike') return 'cpp' as LanguageName;
+      if (fallbackLang === 'htmlmixed') return 'html' as LanguageName;
+      return (fallbackLang as LanguageName) || ('javascript' as LanguageName);
   }
 };
 
@@ -91,7 +118,7 @@ export const Editor = forwardRef<EditorRef, EditorProps>(
       },
     }));
 
-    const targetLangName = mapLanguageName(language);
+    const targetLangName = detectLanguage(activeFilePath, language);
     const langExt = loadLanguage(targetLangName);
 
     const fontTheme = useMemo(() => {

@@ -670,6 +670,10 @@ export const EditorPage: React.FC = () => {
 
             {activeTool === 'settings' && (
               <EditorSettingsPanel
+                language={settings.language}
+                onLanguageChange={(language) => updateSettings({ language })}
+                fontFamily={settings.fontFamily}
+                onFontFamilyChange={(fontFamily) => updateSettings({ fontFamily })}
                 fontSize={settings.fontSize}
                 onFontSizeChange={(fontSize) => updateSettings({ fontSize })}
                 theme={settings.theme}
