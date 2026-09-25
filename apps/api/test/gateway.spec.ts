@@ -87,4 +87,26 @@ describe('RoomGateway Integration & Chat Events', () => {
     expect(broadcastMsg.senderName).toBe('User2');
     expect(broadcastMsg.content).toBe('Hey @User1!');
   });
+
+  it('should broadcast moderation events when a host mutes or kicks a participant', async () => {
+    const roomId = 'test-chat-room';
+
+    const mutePromise = new Promise<{ targetSocketId: string; mute: boolean }>((resolve) => {
+      client2.once(SocketActions.USER_MUTE, (payload) => {
+        resolve(payload);
+      });
+    });
+
+    client1.emit(SocketActions.USER_MUTE, {
+      roomId,
+      targetSocketId: client2.id,
+      targetUsername: 'User2',
+      mute: true,
+      byUsername: 'User1',
+    });
+
+    const mutePayload = await mutePromise;
+    expect(mutePayload.mute).toBe(true);
+    expect(mutePayload.targetSocketId).toBe(client2.id);
+  });
 });
