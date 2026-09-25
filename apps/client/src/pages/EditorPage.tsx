@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import toast from 'react-hot-toast';
 import { useParams, useLocation, useNavigate, Navigate } from 'react-router-dom';
+import { PanelGroup, Panel, PanelResizeHandle } from 'react-resizable-panels';
 import * as Y from 'yjs';
 import { HocuspocusProvider } from '@hocuspocus/provider';
 import { IndexeddbPersistence } from 'y-indexeddb';
@@ -61,6 +62,8 @@ export const EditorPage: React.FC = () => {
   const editorInstanceRef = useRef<EditorRef | null>(null);
   const codeRef = useRef<string>('');
   const activeRecordingIdRef = useRef<string | null>(null);
+  const recentlyNotifiedJoinsRef = useRef<Set<string>>(new Set());
+  const recentlyNotifiedLeavesRef = useRef<Set<string>>(new Set());
 
   const { settings, updateSettings, appTheme, toggleAppTheme } = useSettingsStore();
 
@@ -174,13 +177,36 @@ export const EditorPage: React.FC = () => {
     const socket = initSocket();
     socketRef.current = socket;
 
+    socket.off('connect_error');
+    socket.off('connect_failed');
+    socket.off(SocketActions.JOINED);
+    socket.off(SocketActions.DISCONNECTED);
+    socket.off(SocketActions.CHAT_HISTORY);
+    socket.off(SocketActions.CHAT_BROADCAST);
+    socket.off(SocketActions.RECORDING_NOTIFY);
+    socket.off(SocketActions.USER_MUTE);
+    socket.off(SocketActions.USER_KICK);
+
+    socket.on('connect_error', (err: any) => {
+      console.error('socket error', err);
+      toast.error('Socket connection failed, try again later.');
+      navigate('/');
+    });
+    socket.on('connect_failed', (err: any) => {
+      console.error('socket error', err);
+      toast.error('Socket connection failed, try again later.');
+      navigate('/');
+    });
+
     socket.emit(SocketActions.JOIN, { roomId, username });
 
     socket.on(
       SocketActions.JOINED,
       ({ clients: updatedClients, username: joinedUser }: JoinedPayload) => {
-        if (joinedUser !== username) {
+        if (joinedUser !== username && !recentlyNotifiedJoinsRef.current.has(joinedUser)) {
+          recentlyNotifiedJoinsRef.current.add(joinedUser);
           toast.success(`${joinedUser} joined the room.`, { id: `join-${joinedUser}` });
+          setTimeout(() => { recentlyNotifiedJoinsRef.current.delete(joinedUser); }, 4000);
         }
         const uniqueClients = updatedClients.filter(
           (c, idx, self) => idx === self.findIndex((item) => item.username === c.username)
@@ -193,8 +219,10 @@ export const EditorPage: React.FC = () => {
     socket.on(
       SocketActions.DISCONNECTED,
       ({ socketId, username: leftUser, clients: updatedClients }: DisconnectedPayload) => {
-        if (leftUser) {
+        if (leftUser && !recentlyNotifiedLeavesRef.current.has(leftUser)) {
+          recentlyNotifiedLeavesRef.current.add(leftUser);
           toast.success(`${leftUser} left the room.`, { id: `leave-${leftUser}` });
+          setTimeout(() => { recentlyNotifiedLeavesRef.current.delete(leftUser); }, 4000);
           recordEvent('presence', leftUser, `${leftUser} left room`);
         }
         if (updatedClients && updatedClients.length >= 0) {
@@ -506,18 +534,17 @@ export const EditorPage: React.FC = () => {
     return data.recordingId;
   };
 
-  const handleStopRecording = async () => {
-    if (!activeRecordingIdRef.current) return;
+  const handleStopRecording = async (recordingId?: string): Promise<void> => {
+    const id = recordingId || activeRecordingIdRef.current;
+    if (!id) return;
     const apiHost = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-    const res = await fetch(`${apiHost}/api/recordings/stop`, {
+    await fetch(`${apiHost}/api/recordings/stop`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ recordingId: activeRecordingIdRef.current }),
+      body: JSON.stringify({ recordingId: id }),
     });
-    const recording = await res.json();
     activeRecordingIdRef.current = null;
     setIsRecording(false);
-    setRecordings((prev) => [recording, ...prev]);
 
     socketRef.current?.emit(SocketActions.RECORDING_NOTIFY, {
       roomId,
@@ -538,6 +565,30 @@ export const EditorPage: React.FC = () => {
     }
   };
 
+  const leaveRoom = () => {
+    navigate('/');
+  };
+
+  const handleToggleTheme = () => {
+    toggleAppTheme();
+    const isNextLight = appTheme === 'dark';
+    updateSettings({ theme: isNextLight ? 'githubLight' : 'dracula' });
+    toast.success(`Switched to ${isNextLight ? 'Light Mode' : 'Dark Mode'}`);
+  };
+
+  const handleFetchRecordings = async (): Promise<SessionRecording[]> => {
+    const apiHost = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+    const res = await fetch(`${apiHost}/api/recordings/room/${roomId || 'default-room'}`);
+    const data = await res.json();
+    return data.recordings || [];
+  };
+
+  const handleDeleteRecording = async (recordingId: string): Promise<void> => {
+    const apiHost = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+    await fetch(`${apiHost}/api/recordings/${recordingId}`, { method: 'DELETE' });
+    toast.success('Session recording deleted');
+  };
+
   const presenceUsers = clients.map((c) => ({
     socketId: c.socketId,
     username: c.username,
@@ -550,230 +601,237 @@ export const EditorPage: React.FC = () => {
   return (
     <div
       data-app-theme={appTheme}
+      style={{ fontFamily: settings.fontFamily, fontSize: `${Math.min(16, Math.max(11, settings.fontSize))}px` }}
       className="flex flex-col h-screen w-screen overflow-hidden bg-gray-950 text-gray-100"
     >
-      {/* Top Presence & Room Header */}
-      <header className="flex items-center justify-between border-b border-gray-800 bg-gray-900/90 px-4 py-2 shrink-0">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => navigate('/')}
-            className="flex items-center gap-2 text-indigo-400 hover:text-indigo-300 font-bold text-sm tracking-tight"
-          >
-            <span className="w-6 h-6 rounded bg-indigo-600 text-white flex items-center justify-center text-xs">
-              DM
-            </span>
-            <span>DevMesh</span>
-          </button>
-          <span className="text-gray-600">/</span>
-          <span className="text-xs font-mono bg-gray-800 px-2 py-0.5 rounded text-gray-300">
-            Room: {roomId}
-          </span>
-          <button
-            onClick={copyRoomId}
-            className="text-xs px-2 py-0.5 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded font-mono transition-colors"
-          >
-            Copy
-          </button>
-        </div>
+      {/* Presence Bar */}
+      <PresenceBar
+        users={presenceUsers.length > 0 ? presenceUsers : [{ socketId: 'self', username, color: '#6366f1', activeFile }]}
+        currentUsername={username}
+        theme={settings.theme}
+        onToggleTheme={handleToggleTheme}
+      />
 
-        <PresenceBar
-          users={presenceUsers.length > 0 ? presenceUsers : [{ socketId: 'self', username, color: '#6366f1', activeFile }]}
-          currentUsername={username}
-          theme={appTheme === 'dark' ? 'dracula' : 'githubLight'}
-          onToggleTheme={toggleAppTheme}
-        />
-      </header>
+      {/* Hidden file upload input */}
+      <input
+        type="file"
+        accept=".js,.ts,.py,.java,.cpp,.c,.txt,.html,.css,.json,.md"
+        className="hidden"
+        ref={fileInputRef}
+        onChange={handleFileUpload}
+      />
 
-      {/* Main Workspace Layout */}
-      <div className="flex flex-1 overflow-hidden">
-        {/* Left Icon Navigation Rail */}
-        <ToolsPanel
-          activeTool={activeTool}
-          onSelectTool={setActiveTool}
-          unreadCount={0}
-          onlineUsersCount={clients.length || 1}
-        />
+      {/* Main Resizable Panes Layout */}
+      <div className="flex-1 overflow-hidden">
+        <PanelGroup direction="horizontal" id="devmesh-editor-layout" className="h-full w-full">
+          {/* File Tree Sidebar Panel */}
+          <Panel id="file-tree" defaultSize={20} minSize={15} maxSize={35}>
+            <FileTree
+              files={files}
+              activeFile={activeFile}
+              onSelectFile={handleSelectFile}
+              onCreateFile={handleCreateFile}
+              onCreateFolder={handleCreateFolder}
+              onDeleteFile={handleDeleteFile}
+              onRenameFile={handleRenameFile}
+              onExportZip={handleExportZip}
+              onImportZip={handleImportZip}
+              onUploadClick={() => fileInputRef.current?.click()}
+            />
+          </Panel>
 
-        {/* Dynamic Sidebar Panel */}
-        {activeTool && (
-          <aside className="w-80 bg-gray-950 border-r border-gray-800 shrink-0 h-full overflow-hidden flex flex-col">
-            {activeTool === 'files' && (
-              <FileTree
-                files={files}
-                activeFile={activeFile}
-                onSelectFile={handleSelectFile}
-                onCreateFile={handleCreateFile}
-                onCreateFolder={handleCreateFolder}
-                onDeleteFile={handleDeleteFile}
-                onRenameFile={handleRenameFile}
-                onExportZip={handleExportZip}
-                onImportZip={handleImportZip}
-                onUploadClick={() => fileInputRef.current?.click()}
-              />
-            )}
+          <PanelResizeHandle className="flex-shrink-0 w-1.5 bg-gray-900 border-x border-gray-800/50 hover:bg-indigo-500/40 transition-all cursor-col-resize flex items-center justify-center group focus:outline-none select-none z-20">
+            <div className="w-0.5 h-8 bg-gray-700 rounded-full group-hover:bg-indigo-400 transition-colors pointer-events-none" />
+          </PanelResizeHandle>
 
-            {activeTool === 'chat' && (
-              <ChatPanel
-                messages={chatMessages}
-                currentUsername={username}
-                onSendMessage={handleSendChatMessage}
-                roomUsers={roomUsernames.length > 0 ? roomUsernames : [username]}
-              />
-            )}
-
-            {activeTool === 'call' && (
-              <CallPanel
-                roomId={roomId}
-                username={username}
-                onFetchToken={handleFetchLiveKitToken}
-              />
-            )}
-
-            {activeTool === 'users' && (
-              <UsersPanel
-                clients={clients.length > 0 ? clients : [{ socketId: 'self', username }]}
-                currentUsername={username}
-                creatorUsername={clients[0]?.username || username}
-                mutedUserSockets={mutedUserSockets}
-                onMuteUser={handleMuteUser}
-                onMuteAll={handleMuteAll}
-                onKickUser={handleKickUser}
-              />
-            )}
-
-            {activeTool === 'ai' && (
-              <AiAssistantPanel
-                currentCodeContext={codeRef.current}
-                onRunAiAction={handleRunAiAction}
-                onInsertCode={handleInsertAiCode}
-              />
-            )}
-
-            {activeTool === 'whiteboard' && (
-              <div className="flex flex-col h-full">
-                <div className="p-2 border-b border-gray-800 flex items-center justify-between bg-gray-900/60">
-                  <span className="text-xs font-semibold text-gray-300">Whiteboard</span>
-                  <button
-                    onClick={() => window.open(`/whiteboard/${roomId}?username=${encodeURIComponent(username)}`, '_blank')}
-                    className="text-[11px] px-2 py-0.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded transition-colors"
+          {/* Main Editor Center Panel */}
+          <Panel id="editor" defaultSize={55} minSize={30}>
+            <div className="flex flex-col h-full bg-gray-950">
+              {/* Editor File Tab Bar */}
+              <div className="flex items-center bg-gray-950 border-b border-gray-800 px-2 py-1 gap-1 overflow-x-auto">
+                {files.map((file) => (
+                  <div
+                    key={file}
+                    className={`group flex items-center gap-1.5 px-3 py-1 text-xs rounded-t-lg font-mono border-t border-x transition-colors cursor-pointer ${
+                      activeFile === file
+                        ? 'bg-gray-900 border-gray-700 text-indigo-300 font-semibold'
+                        : 'bg-gray-950 border-transparent text-gray-400 hover:text-gray-200'
+                    }`}
+                    onClick={() => setActiveFile(file)}
                   >
-                    Open Full Page ↗
+                    <span>{file}</span>
+                    {files.length > 1 && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteFile(file);
+                        }}
+                        className="opacity-0 group-hover:opacity-100 hover:text-red-400 text-gray-500 rounded p-0.5 text-[10px] transition-all"
+                        title={`Close ${file}`}
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
+                ))}
+                <div className="ml-auto flex items-center gap-2 px-2">
+                  <button
+                    onClick={copyRoomId}
+                    className="px-2 py-0.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-lg transition-colors whitespace-nowrap"
+                  >
+                    Copy Room ID
+                  </button>
+                  <button
+                    onClick={leaveRoom}
+                    className="px-2 py-0.5 bg-red-600/20 hover:bg-red-600/30 text-red-400 text-xs font-semibold rounded-lg border border-red-500/30 transition-colors whitespace-nowrap"
+                  >
+                    Leave
                   </button>
                 </div>
-                <div className="flex-1 overflow-hidden">
-                  <WhiteboardPanel
-                    elements={whiteboardElements}
-                    onElementsChange={handleWhiteboardChange}
-                  />
+              </div>
+
+              {/* File Diff Preview */}
+              {filePreview && (
+                <FilePreview
+                  setFilePreview={setFilePreview}
+                  fileContent={fileContent}
+                  currentCode={codeRef.current}
+                  resetFileInput={resetFileInput}
+                  onAppend={handleAppendCode}
+                  onReplace={handleReplaceCode}
+                />
+              )}
+
+              {/* CodeMirror Collaborative Editor */}
+              <div className="flex-1 overflow-hidden">
+                <Editor
+                  ref={editorInstanceRef}
+                  doc={doc}
+                  provider={provider}
+                  activeFilePath={activeFile}
+                  username={username}
+                  language={settings.language}
+                  theme={settings.theme}
+                  fontSize={settings.fontSize}
+                  fontFamily={settings.fontFamily}
+                  tabSize={settings.tabSize}
+                  lineWrapping={settings.lineWrapping}
+                  onCodeChange={(code) => {
+                    codeRef.current = code;
+                    if (activeRecordingIdRef.current) {
+                      recordEvent('code', username, code);
+                    }
+                  }}
+                />
+              </div>
+            </div>
+          </Panel>
+
+          <PanelResizeHandle className="flex-shrink-0 w-1.5 bg-gray-900 border-x border-gray-800/50 hover:bg-indigo-500/40 transition-all cursor-col-resize flex items-center justify-center group focus:outline-none select-none z-20">
+            <div className="w-0.5 h-8 bg-gray-700 rounded-full group-hover:bg-indigo-400 transition-colors pointer-events-none" />
+          </PanelResizeHandle>
+
+          {/* Right Tools & Customization Panel */}
+          <Panel id="tools" defaultSize={25} minSize={18} maxSize={45}>
+            <div className="flex h-full">
+              <ToolsPanel
+                activeTool={activeTool}
+                onSelectTool={setActiveTool}
+                unreadCount={0}
+                onlineUsersCount={clients.length || 1}
+              />
+              {activeTool && (
+                <div className="flex-1 h-full overflow-hidden flex flex-col bg-gray-950 border-l border-gray-800">
+                  {activeTool === 'files' && (
+                    <div className="h-full flex items-center justify-center text-xs text-gray-500 p-4 text-center">
+                      File tree is on the left panel
+                    </div>
+                  )}
+                  {activeTool === 'chat' && (
+                    <ChatPanel
+                      messages={chatMessages}
+                      currentUsername={username}
+                      onSendMessage={handleSendChatMessage}
+                      roomUsers={roomUsernames.length > 0 ? roomUsernames : [username]}
+                    />
+                  )}
+                  {activeTool === 'call' && (
+                    <CallPanel
+                      roomId={roomId}
+                      username={username}
+                      onFetchToken={handleFetchLiveKitToken}
+                    />
+                  )}
+                  {activeTool === 'users' && (
+                    <UsersPanel
+                      clients={clients.length > 0 ? clients : [{ socketId: 'self', username }]}
+                      currentUsername={username}
+                      creatorUsername={clients[0]?.username || username}
+                      mutedUserSockets={mutedUserSockets}
+                      onMuteUser={handleMuteUser}
+                      onMuteAll={handleMuteAll}
+                      onKickUser={handleKickUser}
+                    />
+                  )}
+                  {activeTool === 'ai' && (
+                    <AiAssistantPanel
+                      currentCodeContext={codeRef.current}
+                      onRunAiAction={handleRunAiAction}
+                      onInsertCode={handleInsertAiCode}
+                    />
+                  )}
+                  {activeTool === 'whiteboard' && (
+                    <div className="flex flex-col h-full">
+                      <div className="p-2 border-b border-gray-800 flex items-center justify-between bg-gray-900/60">
+                        <span className="text-xs font-semibold text-gray-300">Whiteboard</span>
+                        <button
+                          onClick={() => window.open(`/whiteboard/${roomId}?username=${encodeURIComponent(username)}`, '_blank')}
+                          className="text-[11px] px-2 py-0.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded transition-colors"
+                        >
+                          Open Full Page ↗
+                        </button>
+                      </div>
+                      <div className="flex-1 overflow-hidden">
+                        <WhiteboardPanel
+                          elements={whiteboardElements}
+                          onElementsChange={handleWhiteboardChange}
+                        />
+                      </div>
+                    </div>
+                  )}
+                  {activeTool === 'recordings' && (
+                    <RecordingsPanel
+                      recordings={recordings}
+                      isRecording={isRecording}
+                      onStartRecording={handleStartRecording}
+                      onStopRecording={handleStopRecording}
+                      onDeleteRecording={handleDeleteRecording}
+                      onReplayCodeChange={updateEditorCode}
+                    />
+                  )}
+                  {activeTool === 'settings' && (
+                    <EditorSettingsPanel
+                      language={settings.language}
+                      onLanguageChange={(language) => updateSettings({ language })}
+                      fontFamily={settings.fontFamily}
+                      onFontFamilyChange={(fontFamily) => updateSettings({ fontFamily })}
+                      fontSize={settings.fontSize}
+                      onFontSizeChange={(fontSize) => updateSettings({ fontSize })}
+                      theme={settings.theme}
+                      onThemeChange={(theme) => updateSettings({ theme })}
+                      tabSize={settings.tabSize}
+                      onTabSizeChange={(tabSize) => updateSettings({ tabSize })}
+                      lineWrapping={settings.lineWrapping}
+                      onLineWrappingChange={(lineWrapping) => updateSettings({ lineWrapping })}
+                    />
+                  )}
                 </div>
-              </div>
-            )}
-
-            {activeTool === 'recordings' && (
-              <RecordingsPanel
-                recordings={recordings}
-                isRecording={isRecording}
-                onStartRecording={handleStartRecording}
-                onStopRecording={handleStopRecording}
-                onReplayCodeChange={updateEditorCode}
-              />
-            )}
-
-            {activeTool === 'settings' && (
-              <EditorSettingsPanel
-                language={settings.language}
-                onLanguageChange={(language) => updateSettings({ language })}
-                fontFamily={settings.fontFamily}
-                onFontFamilyChange={(fontFamily) => updateSettings({ fontFamily })}
-                fontSize={settings.fontSize}
-                onFontSizeChange={(fontSize) => updateSettings({ fontSize })}
-                theme={settings.theme}
-                onThemeChange={(theme) => updateSettings({ theme })}
-                tabSize={settings.tabSize}
-                onTabSizeChange={(tabSize) => updateSettings({ tabSize })}
-                lineWrapping={settings.lineWrapping}
-                onLineWrappingChange={(lineWrapping) => updateSettings({ lineWrapping })}
-              />
-            )}
-          </aside>
-        )}
-
-        {/* Code Editor Main Canvas */}
-        <main className="flex-1 flex flex-col min-w-0 bg-gray-900 overflow-hidden">
-          {/* File Upload Hidden Input */}
-          <input
-            type="file"
-            accept=".js,.ts,.py,.java,.cpp,.c,.txt,.html,.css,.json,.md"
-            className="hidden"
-            ref={fileInputRef}
-            onChange={handleFileUpload}
-          />
-
-          {/* File Diff Modal */}
-          {filePreview && (
-            <FilePreview
-              setFilePreview={setFilePreview}
-              fileContent={fileContent}
-              currentCode={codeRef.current}
-              resetFileInput={resetFileInput}
-              onAppend={handleAppendCode}
-              onReplace={handleReplaceCode}
-            />
-          )}
-
-          {/* Editor File Tab Bar */}
-          <div className="flex items-center bg-gray-950 border-b border-gray-800 px-2 py-1 gap-1 overflow-x-auto">
-            {files.map((file) => (
-              <div
-                key={file}
-                className={`group flex items-center gap-1.5 px-3 py-1 text-xs rounded-t-lg font-mono border-t border-x transition-colors cursor-pointer ${
-                  activeFile === file
-                    ? 'bg-gray-900 border-gray-700 text-indigo-300 font-semibold'
-                    : 'bg-gray-950 border-transparent text-gray-400 hover:text-gray-200'
-                }`}
-                onClick={() => setActiveFile(file)}
-              >
-                <span>{file}</span>
-                {files.length > 1 && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDeleteFile(file);
-                    }}
-                    className="opacity-0 group-hover:opacity-100 hover:text-red-400 text-gray-500 rounded p-0.5 text-[10px] transition-all"
-                    title={`Close ${file}`}
-                  >
-                    ×
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
-
-          {/* CodeMirror Collaborative Editor */}
-          <div className="flex-1 overflow-hidden">
-            <Editor
-              ref={editorInstanceRef}
-              doc={doc}
-              provider={provider}
-              activeFilePath={activeFile}
-              username={username}
-              language={settings.language}
-              theme={settings.theme}
-              fontSize={settings.fontSize}
-              fontFamily={settings.fontFamily}
-              tabSize={settings.tabSize}
-              lineWrapping={settings.lineWrapping}
-              onCodeChange={(code) => {
-                codeRef.current = code;
-                if (activeRecordingIdRef.current) {
-                  recordEvent('code', username, code);
-                }
-              }}
-            />
-          </div>
-        </main>
+              )}
+            </div>
+          </Panel>
+        </PanelGroup>
       </div>
+
     </div>
   );
 };
