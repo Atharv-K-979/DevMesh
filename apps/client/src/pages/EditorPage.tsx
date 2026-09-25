@@ -724,17 +724,29 @@ export const EditorPage: React.FC = () => {
           {/* Editor File Tab Bar */}
           <div className="flex items-center bg-gray-950 border-b border-gray-800 px-2 py-1 gap-1 overflow-x-auto">
             {files.map((file) => (
-              <button
+              <div
                 key={file}
-                onClick={() => setActiveFile(file)}
-                className={`px-3 py-1 text-xs rounded-t-lg font-mono border-t border-x transition-colors ${
+                className={`group flex items-center gap-1.5 px-3 py-1 text-xs rounded-t-lg font-mono border-t border-x transition-colors cursor-pointer ${
                   activeFile === file
                     ? 'bg-gray-900 border-gray-700 text-indigo-300 font-semibold'
                     : 'bg-gray-950 border-transparent text-gray-400 hover:text-gray-200'
                 }`}
+                onClick={() => setActiveFile(file)}
               >
-                {file}
-              </button>
+                <span>{file}</span>
+                {files.length > 1 && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteFile(file);
+                    }}
+                    className="opacity-0 group-hover:opacity-100 hover:text-red-400 text-gray-500 rounded p-0.5 text-[10px] transition-all"
+                    title={`Close ${file}`}
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
             ))}
           </div>
 
