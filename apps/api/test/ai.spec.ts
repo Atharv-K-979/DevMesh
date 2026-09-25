@@ -43,4 +43,28 @@ describe('AiController (POST /api/ai/completion)', () => {
     expect(res.action).toBe('generate');
     expect(res.result).toContain('UserAuthHelper');
   });
+
+  it('should return refactor code completion', async () => {
+    const res = await controller.getCompletion({
+      prompt: 'Clean array processing',
+      contextCode: 'const data = [1, 2, 3];',
+      action: 'refactor',
+    });
+
+    expect(res).toBeDefined();
+    expect(res.action).toBe('refactor');
+    expect(res.result).toContain('Refactored Code Optimization');
+  });
+
+  it('should return bug fix suggestions', async () => {
+    const res = await controller.getCompletion({
+      prompt: 'Fix null pointer exception',
+      contextCode: 'return user.name;',
+      action: 'fix',
+    });
+
+    expect(res).toBeDefined();
+    expect(res.action).toBe('fix');
+    expect(res.result).toContain('Bug Fix Suggestion');
+  });
 });

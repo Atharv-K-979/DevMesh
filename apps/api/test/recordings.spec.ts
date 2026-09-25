@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { Test } from '@nestjs/testing';
-import { INestApplication } from '@nestjs/common';
+import { INestApplication, NotFoundException } from '@nestjs/common';
 import { RecordingsController } from '../src/recordings.controller';
 
 describe('RecordingsController (/api/recordings)', () => {
@@ -57,5 +57,25 @@ describe('RecordingsController (/api/recordings)', () => {
 
     const detailRes = controller.getRecordingDetail(startRes.recordingId);
     expect(detailRes.id).toBe(startRes.recordingId);
+
+    const deleteRes = controller.deleteRecording(startRes.recordingId);
+    expect(deleteRes.success).toBe(true);
+
+    const afterDeleteList = controller.getRecordingsForRoom('test-room-1');
+    expect(afterDeleteList.recordings.length).toBe(0);
+  });
+
+  it('should handle non-existent session stop and events gracefully', () => {
+    const eventRes = controller.addEvent({
+      recordingId: 'non-existent-rec',
+      type: 'code',
+      author: 'charlie',
+      detail: 'Test',
+    });
+    expect(eventRes.success).toBe(false);
+
+    expect(() =>
+      controller.stopRecording({ recordingId: 'non-existent-rec' }),
+    ).toThrow(NotFoundException);
   });
 });
