@@ -64,7 +64,14 @@ export const ToolsPanel: React.FC<ToolsPanelProps> = ({
   unreadCount = 0,
   onlineUsersCount = 0,
 }) => {
-  const tools = [
+  interface ToolItem {
+    id: ActiveTool;
+    label: string;
+    icon: React.ReactNode;
+    badge?: number;
+  }
+
+  const tools: ToolItem[] = [
     { id: 'files', label: 'Explorer', icon: <FilesIcon /> },
     { id: 'chat', label: 'Chat', icon: <ChatIcon />, badge: unreadCount },
     { id: 'call', label: 'Call', icon: <CallIcon /> },
@@ -73,7 +80,7 @@ export const ToolsPanel: React.FC<ToolsPanelProps> = ({
     { id: 'whiteboard', label: 'Whiteboard', icon: <WhiteboardIcon /> },
     { id: 'recordings', label: 'Recordings', icon: <RecordingsIcon /> },
     { id: 'settings', label: 'Settings', icon: <SettingsIcon /> },
-  ] as const;
+  ];
 
   return (
     <aside className="w-14 bg-gray-950 border-r border-gray-800 flex flex-col items-center py-3 gap-2 shrink-0 select-none z-20">

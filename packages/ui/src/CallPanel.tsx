@@ -102,6 +102,7 @@ export const CallPanel: React.FC<CallPanelProps> = ({ roomId, username, onFetchT
             </button>
           </div>
         ) : (
+          <div className="flex-1 flex flex-col min-h-0">
             {/* Participant Video & Screen Share Stage */}
             <div className="flex-1 flex flex-col gap-2 overflow-y-auto">
               {isSharing && (

@@ -4,6 +4,10 @@ import { HocuspocusProvider } from '@hocuspocus/provider';
 import * as Y from 'yjs';
 import WebSocket from 'ws';
 
+if (typeof (globalThis as any).WebSocket === 'undefined') {
+  (globalThis as any).WebSocket = (WebSocket as any).default || WebSocket;
+}
+
 const mod: any = HocuspocusServerModule;
 const HocuspocusClass = mod.Hocuspocus || mod.default?.Hocuspocus || mod.Server?.constructor;
 

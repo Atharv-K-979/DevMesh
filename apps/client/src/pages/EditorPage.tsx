@@ -483,14 +483,14 @@ export const EditorPage: React.FC = () => {
     toast.success('Inserted AI snippet into editor');
   };
 
-  const handleStartRecording = async () => {
+  const handleStartRecording = async (customTitle?: string): Promise<string> => {
     const apiHost = import.meta.env.VITE_API_URL || 'http://localhost:3001';
     const res = await fetch(`${apiHost}/api/recordings/start`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         roomId,
-        title: `Session ${new Date().toLocaleTimeString()}`,
+        title: customTitle || `Session ${new Date().toLocaleTimeString()}`,
       }),
     });
     const data = await res.json();
@@ -503,6 +503,7 @@ export const EditorPage: React.FC = () => {
       action: 'start',
     });
     toast.success('Started session recording');
+    return data.recordingId;
   };
 
   const handleStopRecording = async () => {
