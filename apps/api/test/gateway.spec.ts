@@ -108,5 +108,22 @@ describe('RoomGateway Integration & Chat Events', () => {
     const mutePayload = await mutePromise;
     expect(mutePayload.mute).toBe(true);
     expect(mutePayload.targetSocketId).toBe(client2.id);
+
+    const kickPromise = new Promise<{ targetSocketId: string; targetUsername: string }>((resolve) => {
+      client2.once(SocketActions.USER_KICK, (payload) => {
+        resolve(payload);
+      });
+    });
+
+    client1.emit(SocketActions.USER_KICK, {
+      roomId,
+      targetSocketId: client2.id,
+      targetUsername: 'User2',
+      byUsername: 'User1',
+    });
+
+    const kickPayload = await kickPromise;
+    expect(kickPayload.targetUsername).toBe('User2');
+    expect(kickPayload.targetSocketId).toBe(client2.id);
   });
 });
