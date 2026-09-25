@@ -3,6 +3,7 @@ import CodeMirror, { EditorView } from '@uiw/react-codemirror';
 import { loadLanguage, LanguageName } from '@uiw/codemirror-extensions-langs';
 import * as themes from '@uiw/codemirror-themes-all';
 import { Extension } from '@codemirror/state';
+import { indentUnit } from '@codemirror/language';
 import * as Y from 'yjs';
 import { HocuspocusProvider } from '@hocuspocus/provider';
 import { yCollab } from 'y-codemirror.next';
@@ -20,6 +21,8 @@ interface EditorProps {
   theme: string;
   fontSize?: number;
   fontFamily?: string;
+  tabSize?: number;
+  lineWrapping?: boolean;
   onCodeChange?: (code: string) => void;
 }
 
@@ -78,7 +81,7 @@ const getRandomColor = (name: string) => {
 };
 
 export const Editor = forwardRef<EditorRef, EditorProps>(
-  ({ doc, provider, activeFilePath, username, language, theme, fontSize = 14, fontFamily = 'monospace', onCodeChange }, ref) => {
+  ({ doc, provider, activeFilePath, username, language, theme, fontSize = 14, fontFamily = 'monospace', tabSize = 2, lineWrapping = true, onCodeChange }, ref) => {
     const [crdtExtension, setCrdtExtension] = useState<Extension | null>(null);
 
     useEffect(() => {
@@ -144,10 +147,12 @@ export const Editor = forwardRef<EditorRef, EditorProps>(
 
     const extensions = useMemo(() => {
       const exts: Extension[] = [fontTheme];
+      exts.push(indentUnit.of(' '.repeat(tabSize)));
+      if (lineWrapping) exts.push(EditorView.lineWrapping);
       if (langExt) exts.push(langExt);
       if (crdtExtension) exts.push(crdtExtension);
       return exts;
-    }, [langExt, crdtExtension, fontTheme]);
+    }, [langExt, crdtExtension, fontTheme, tabSize, lineWrapping]);
 
     const themesMap = themes as unknown as Record<string, Extension>;
     const selectedTheme = themesMap[theme] || themesMap.dracula;

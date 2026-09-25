@@ -762,6 +762,8 @@ export const EditorPage: React.FC = () => {
               theme={settings.theme}
               fontSize={settings.fontSize}
               fontFamily={settings.fontFamily}
+              tabSize={settings.tabSize}
+              lineWrapping={settings.lineWrapping}
               onCodeChange={(code) => {
                 codeRef.current = code;
                 if (activeRecordingIdRef.current) {
