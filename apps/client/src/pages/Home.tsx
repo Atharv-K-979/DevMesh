@@ -1,12 +1,20 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { v4 as uuidV4 } from 'uuid';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
+import { useAuthStore } from '../store/authStore';
 
 export const Home: React.FC = () => {
   const navigate = useNavigate();
+  const { user, login } = useAuthStore();
   const [roomId, setRoomId] = useState('');
   const [username, setUsername] = useState('');
+
+  useEffect(() => {
+    if (user?.username) {
+      setUsername(user.username);
+    }
+  }, [user]);
 
   const createNewRoom = (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault();
@@ -15,14 +23,19 @@ export const Home: React.FC = () => {
     toast.success('Created a new room ID');
   };
 
-  const joinRoom = () => {
-    if (!roomId.trim() || !username.trim()) {
+  const joinRoom = async () => {
+    const trimmedRoom = roomId.trim();
+    const trimmedUser = username.trim();
+
+    if (!trimmedRoom || !trimmedUser) {
       toast.error('Room ID & username are required');
       return;
     }
 
-    navigate(`/editor/${roomId.trim()}`, {
-      state: { username: username.trim() },
+    await login(trimmedUser);
+
+    navigate(`/editor/${trimmedRoom}`, {
+      state: { username: trimmedUser },
     });
   };
 
