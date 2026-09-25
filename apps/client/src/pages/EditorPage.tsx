@@ -38,6 +38,7 @@ import { initSocket } from '../socket';
 import { Editor, EditorRef } from '../components/Editor';
 import { FilePreview } from '../components/FilePreview';
 import { useSettingsStore } from '../store/settingsStore';
+import { useWorkspaceStore } from '../store/workspaceStore';
 
 export const EditorPage: React.FC = () => {
   const { roomId = 'default-room' } = useParams<{ roomId: string }>();
@@ -47,8 +48,17 @@ export const EditorPage: React.FC = () => {
   const username = (location.state as any)?.username || 'Guest';
 
   const [activeTool, setActiveTool] = useState<ActiveTool>('files');
-  const [activeFile, setActiveFile] = useState<string>('index.ts');
-  const [files, setFiles] = useState<string[]>(['index.ts', 'styles.css', 'README.md']);
+  const {
+    files,
+    activeFile,
+    openTabs,
+    createFile,
+    deleteFile,
+    renameFile,
+    setActiveFile,
+    openTab,
+    closeTab,
+  } = useWorkspaceStore();
   const [clients, setClients] = useState<ClientInfo[]>([]);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [mutedUserSockets, setMutedUserSockets] = useState<string[]>([]);
@@ -107,8 +117,8 @@ export const EditorPage: React.FC = () => {
           }
         }, 300);
       } else {
-        setFiles(unique);
-        if (!unique.includes(activeFile)) {
+        unique.forEach((f) => createFile(f));
+        if (!unique.includes(activeFile) && unique.length > 0) {
           setActiveFile(unique[0]);
         }
         if (initTimer) clearTimeout(initTimer);
@@ -305,12 +315,15 @@ export const EditorPage: React.FC = () => {
 
   const handleCreateFile = (filePath: string) => {
     const filesArray = doc.getArray<string>('projectFiles');
-    if (!filesArray.toArray().includes(filePath)) {
+    const trimmed = filePath.trim();
+    if (!trimmed) return;
+    if (!filesArray.toArray().includes(trimmed)) {
       doc.transact(() => {
-        filesArray.push([filePath]);
+        filesArray.push([trimmed]);
       });
-      setActiveFile(filePath);
-      toast.success(`Created file ${filePath}`);
+      createFile(trimmed);
+      setActiveFile(trimmed);
+      toast.success(`Created file ${trimmed}`);
     }
   };
 
@@ -329,10 +342,7 @@ export const EditorPage: React.FC = () => {
         const yText = doc.getText(`file:${filePath}`);
         yText.delete(0, yText.length);
       });
-      const remaining = current.filter((f) => f !== filePath);
-      if (activeFile === filePath && remaining.length > 0) {
-        setActiveFile(remaining[0]);
-      }
+      deleteFile(filePath);
       toast.success(`Deleted file ${filePath}`);
     }
   };
@@ -351,9 +361,7 @@ export const EditorPage: React.FC = () => {
         newYText.insert(0, content);
         oldYText.delete(0, oldYText.length);
       });
-      if (activeFile === oldPath) {
-        setActiveFile(newPath);
-      }
+      renameFile(oldPath, newPath);
       toast.success(`Renamed to ${newPath}`);
     }
   };
@@ -649,7 +657,7 @@ export const EditorPage: React.FC = () => {
             <div className="flex flex-col h-full bg-gray-950">
               {/* Editor File Tab Bar */}
               <div className="flex items-center bg-gray-950 border-b border-gray-800 px-2 py-1 gap-1 overflow-x-auto">
-                {files.map((file) => (
+                {(openTabs.length > 0 ? openTabs : files).map((file) => (
                   <div
                     key={file}
                     className={`group flex items-center gap-1.5 px-3 py-1 text-xs rounded-t-lg font-mono border-t border-x transition-colors cursor-pointer ${
@@ -657,14 +665,14 @@ export const EditorPage: React.FC = () => {
                         ? 'bg-gray-900 border-gray-700 text-indigo-300 font-semibold'
                         : 'bg-gray-950 border-transparent text-gray-400 hover:text-gray-200'
                     }`}
-                    onClick={() => setActiveFile(file)}
+                    onClick={() => openTab(file)}
                   >
                     <span>{file}</span>
-                    {files.length > 1 && (
+                    {openTabs.length > 1 && (
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleDeleteFile(file);
+                          closeTab(file);
                         }}
                         className="opacity-0 group-hover:opacity-100 hover:text-red-400 text-gray-500 rounded p-0.5 text-[10px] transition-all"
                         title={`Close ${file}`}
