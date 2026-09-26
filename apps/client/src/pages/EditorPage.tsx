@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import { useParams, useLocation, useNavigate, Navigate } from 'react-router-dom';
 import { PanelGroup, Panel, PanelResizeHandle } from 'react-resizable-panels';
@@ -20,6 +20,10 @@ import {
   AiAssistantPanel,
   WhiteboardPanel,
   RecordingsPanel,
+  StatusBar,
+  CommandPalette,
+  CodeRunnerPanel,
+  SnippetsPanel,
 } from '@devmesh/ui';
 import {
   ClientInfo,
@@ -33,6 +37,11 @@ import {
   AiCompletionResponse,
   WhiteboardElement,
   SocketActions,
+  CommandPaletteAction,
+  CodeExecutionRequest,
+  CodeExecutionResult,
+  UserRole,
+  RoleChangePayload,
 } from '@devmesh/shared-types';
 import { initSocket } from '../socket';
 import { Editor, EditorRef } from '../components/Editor';
@@ -64,6 +73,8 @@ export const EditorPage: React.FC = () => {
   const [mutedUserSockets, setMutedUserSockets] = useState<string[]>([]);
   const [recordings, setRecordings] = useState<SessionRecording[]>([]);
   const [isRecording, setIsRecording] = useState<boolean>(false);
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+  const [userRole, setUserRole] = useState<UserRole>('editor');
 
   const socketRef = useRef<Socket | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -196,6 +207,7 @@ export const EditorPage: React.FC = () => {
     socket.off(SocketActions.RECORDING_NOTIFY);
     socket.off(SocketActions.USER_MUTE);
     socket.off(SocketActions.USER_KICK);
+    socket.off(SocketActions.USER_ROLE_CHANGE);
 
     socket.on('connect_error', (err: any) => {
       console.error('socket error', err);
@@ -298,12 +310,61 @@ export const EditorPage: React.FC = () => {
       }
     });
 
+    socket.on(SocketActions.USER_ROLE_CHANGE, (payload: RoleChangePayload) => {
+      if (payload.targetSocketId === socket.id) {
+        setUserRole(payload.role);
+        toast(`Your role was changed to ${payload.role.toUpperCase()}`, { icon: '🛡️' });
+      }
+      setClients((prev) =>
+        prev.map((c) => (c.socketId === payload.targetSocketId ? { ...c, role: payload.role } : c))
+      );
+    });
+
     return () => {
       if (socketRef.current) {
         socketRef.current.disconnect();
       }
     };
   }, [roomId, username, navigate]);
+
+  const updateEditorCode = useCallback((newCode: string) => {
+    editorInstanceRef.current?.setCode(newCode);
+    codeRef.current = newCode;
+  }, []);
+
+  const copyRoomId = useCallback(async () => {
+    try {
+      if (roomId) {
+        await navigator.clipboard.writeText(roomId);
+        toast.success('Room ID copied to clipboard');
+      }
+    } catch (err) {
+      toast.error('Could not copy Room ID');
+    }
+  }, [roomId]);
+
+  const handleToggleTheme = useCallback(() => {
+    toggleAppTheme();
+    const isNextLight = appTheme === 'dark';
+    updateSettings({ theme: isNextLight ? 'githubLight' : 'dracula' });
+    toast.success(`Switched to ${isNextLight ? 'Light Mode' : 'Dark Mode'}`);
+  }, [appTheme, toggleAppTheme, updateSettings]);
+
+  // Global Keyboard Shortcuts
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setIsCommandPaletteOpen((prev) => !prev);
+      } else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's') {
+        e.preventDefault();
+        toast.success('Workspace auto-saved in realtime (Yjs CRDT)');
+      }
+    };
+
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, []);
 
   if (!username) {
     return <Navigate to="/" />;
@@ -429,11 +490,6 @@ export const EditorPage: React.FC = () => {
     }
   };
 
-  const updateEditorCode = (newCode: string) => {
-    editorInstanceRef.current?.setCode(newCode);
-    codeRef.current = newCode;
-  };
-
   const handleAppendCode = () => {
     const currentCode = codeRef.current || '';
     const appendedCode = currentCode ? `${currentCode}\n\n${fileContent}` : fileContent;
@@ -499,6 +555,17 @@ export const EditorPage: React.FC = () => {
     });
   };
 
+  const handleRoleChange = (targetSocketId: string, targetUsername: string, role: UserRole) => {
+    socketRef.current?.emit(SocketActions.USER_ROLE_CHANGE, {
+      roomId,
+      targetSocketId,
+      targetUsername,
+      role,
+      byUsername: username,
+    });
+    toast.success(`Updated role for ${targetUsername} to ${role}`);
+  };
+
   const handleRunAiAction = async (req: AiCompletionRequest): Promise<AiCompletionResponse> => {
     const apiHost = import.meta.env.VITE_API_URL || 'http://localhost:3001';
     const res = await fetch(`${apiHost}/api/ai/completion`, {
@@ -516,7 +583,20 @@ export const EditorPage: React.FC = () => {
     const current = codeRef.current || '';
     const updated = current ? `${current}\n\n${codeSnippet}` : codeSnippet;
     updateEditorCode(updated);
-    toast.success('Inserted AI snippet into editor');
+    toast.success('Inserted snippet into editor');
+  };
+
+  const handleExecuteCodeApi = async (req: CodeExecutionRequest): Promise<CodeExecutionResult> => {
+    const apiHost = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+    const res = await fetch(`${apiHost}/api/runner/execute`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ...req,
+        roomId,
+      }),
+    });
+    return await res.json();
   };
 
   const handleStartRecording = async (customTitle?: string): Promise<string> => {
@@ -562,26 +642,8 @@ export const EditorPage: React.FC = () => {
     toast.success('Stopped session recording');
   };
 
-  const copyRoomId = async () => {
-    try {
-      if (roomId) {
-        await navigator.clipboard.writeText(roomId);
-        toast.success('Room ID copied to clipboard');
-      }
-    } catch (err) {
-      toast.error('Could not copy Room ID');
-    }
-  };
-
   const leaveRoom = () => {
     navigate('/');
-  };
-
-  const handleToggleTheme = () => {
-    toggleAppTheme();
-    const isNextLight = appTheme === 'dark';
-    updateSettings({ theme: isNextLight ? 'githubLight' : 'dracula' });
-    toast.success(`Switched to ${isNextLight ? 'Light Mode' : 'Dark Mode'}`);
   };
 
   const handleFetchRecordings = async (): Promise<SessionRecording[]> => {
@@ -596,6 +658,75 @@ export const EditorPage: React.FC = () => {
     await fetch(`${apiHost}/api/recordings/${recordingId}`, { method: 'DELETE' });
     toast.success('Session recording deleted');
   };
+
+  // Command Palette Actions
+  const commandPaletteActions: CommandPaletteAction[] = [
+    {
+      id: 'cmd-copy-room',
+      title: 'Copy Room ID',
+      description: 'Copy room sharing link to clipboard',
+      shortcut: '⌘C',
+      category: 'Collaboration',
+      perform: copyRoomId,
+    },
+    {
+      id: 'cmd-run-code',
+      title: 'Run Code in Runner',
+      description: 'Open code runner and execute active file',
+      shortcut: '⌘↵',
+      category: 'Editor',
+      perform: () => setActiveTool('runner'),
+    },
+    {
+      id: 'cmd-snippets',
+      title: 'Browse Code Snippets',
+      description: 'Explore and insert reusable code templates',
+      category: 'Editor',
+      perform: () => setActiveTool('snippets'),
+    },
+    {
+      id: 'cmd-ai-explain',
+      title: 'AI Explain Code',
+      description: 'Ask AI assistant to explain active file',
+      category: 'AI',
+      perform: () => setActiveTool('ai'),
+    },
+    {
+      id: 'cmd-whiteboard',
+      title: 'Open Collaborative Whiteboard',
+      description: 'Draw diagrams and sketch with team',
+      category: 'Collaboration',
+      perform: () => setActiveTool('whiteboard'),
+    },
+    {
+      id: 'cmd-toggle-theme',
+      title: 'Toggle Color Theme',
+      description: 'Switch between light and dark theme mode',
+      category: 'View',
+      perform: handleToggleTheme,
+    },
+    {
+      id: 'cmd-export-zip',
+      title: 'Export Workspace ZIP',
+      description: 'Download full workspace as ZIP archive',
+      category: 'Editor',
+      perform: handleExportZip,
+    },
+    {
+      id: 'cmd-settings',
+      title: 'Editor Preferences',
+      description: 'Configure font size, tab size, and theme',
+      category: 'View',
+      perform: () => setActiveTool('settings'),
+    },
+    {
+      id: 'cmd-leave',
+      title: 'Leave Room',
+      description: 'Disconnect and return to home page',
+      category: 'Navigation',
+      perform: leaveRoom,
+    },
+  ];
 
   const presenceUsers = clients.map((c) => ({
     socketId: c.socketId,
@@ -612,6 +743,13 @@ export const EditorPage: React.FC = () => {
       style={{ fontFamily: settings.fontFamily, fontSize: `${Math.min(16, Math.max(11, settings.fontSize))}px` }}
       className="flex flex-col h-screen w-screen overflow-hidden bg-gray-950 text-gray-100"
     >
+      {/* Command Palette Modal */}
+      <CommandPalette
+        isOpen={isCommandPaletteOpen}
+        onClose={() => setIsCommandPaletteOpen(false)}
+        actions={commandPaletteActions}
+      />
+
       {/* Presence Bar */}
       <PresenceBar
         users={presenceUsers.length > 0 ? presenceUsers : [{ socketId: 'self', username, color: '#6366f1', activeFile }]}
@@ -755,6 +893,17 @@ export const EditorPage: React.FC = () => {
                       File tree is on the left panel
                     </div>
                   )}
+                  {activeTool === 'runner' && (
+                    <CodeRunnerPanel
+                      currentCode={codeRef.current}
+                      activeFilePath={activeFile}
+                      language={settings.language}
+                      onExecuteCode={handleExecuteCodeApi}
+                    />
+                  )}
+                  {activeTool === 'snippets' && (
+                    <SnippetsPanel onInsertCode={handleInsertAiCode} />
+                  )}
                   {activeTool === 'chat' && (
                     <ChatPanel
                       messages={chatMessages}
@@ -779,6 +928,7 @@ export const EditorPage: React.FC = () => {
                       onMuteUser={handleMuteUser}
                       onMuteAll={handleMuteAll}
                       onKickUser={handleKickUser}
+                      onRoleChange={handleRoleChange}
                     />
                   )}
                   {activeTool === 'ai' && (
@@ -840,6 +990,16 @@ export const EditorPage: React.FC = () => {
         </PanelGroup>
       </div>
 
+      {/* Bottom Status Bar */}
+      <StatusBar
+        activeFile={activeFile}
+        language={settings.language}
+        tabSize={settings.tabSize}
+        roomId={roomId}
+        onlineCount={clients.length || 1}
+        syncStatus="synced"
+        onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
+      />
     </div>
   );
 };
