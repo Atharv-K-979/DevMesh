@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ClientInfo } from '@devmesh/shared-types';
+import { ClientInfo, UserRole } from '@devmesh/shared-types';
 
 interface UsersPanelProps {
   clients: ClientInfo[];
@@ -9,6 +9,7 @@ interface UsersPanelProps {
   onMuteUser?: (targetSocketId: string, targetUsername: string, mute: boolean) => void;
   onMuteAll?: () => void;
   onKickUser?: (targetSocketId: string, targetUsername: string) => void;
+  onRoleChange?: (targetSocketId: string, targetUsername: string, role: UserRole) => void;
 }
 
 export const UsersPanel: React.FC<UsersPanelProps> = ({
@@ -19,6 +20,7 @@ export const UsersPanel: React.FC<UsersPanelProps> = ({
   onMuteUser,
   onMuteAll,
   onKickUser,
+  onRoleChange,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -37,7 +39,7 @@ export const UsersPanel: React.FC<UsersPanelProps> = ({
   return (
     <div className="flex flex-col h-full bg-gray-950 text-gray-200">
       <div className="p-3 border-b border-gray-800 flex items-center justify-between">
-        <span className="text-xs font-bold tracking-wider text-gray-400">Participants</span>
+        <span className="text-xs font-bold tracking-wider text-gray-400">Participants & Roles</span>
         <div className="flex items-center gap-1.5">
           <span className="text-xs font-mono text-gray-500">{clients.length} online</span>
           {mutedUserSockets.length > 0 && (
@@ -76,6 +78,7 @@ export const UsersPanel: React.FC<UsersPanelProps> = ({
           const isSelf = client.username === currentUsername;
           const isOwner = client.username === creatorUsername;
           const isMuted = mutedUserSockets.includes(client.socketId);
+          const currentRole: UserRole = client.role || (isOwner ? 'admin' : 'editor');
 
           return (
             <div
@@ -94,11 +97,23 @@ export const UsersPanel: React.FC<UsersPanelProps> = ({
                     <span className="text-xs font-medium text-gray-200">{client.username}</span>
                     {isSelf && <span className="text-[9px] text-gray-500 font-mono">(You)</span>}
                   </div>
-                  {isOwner && (
-                    <span className="text-[9px] font-semibold text-amber-400 uppercase tracking-wider">
-                      Room Admin
-                    </span>
-                  )}
+                  <div className="flex items-center gap-1 mt-0.5">
+                    {isOwner ? (
+                      <span className="text-[9px] font-semibold text-amber-400 uppercase tracking-wider">
+                        Room Admin
+                      </span>
+                    ) : (
+                      <span className={`text-[9px] font-mono px-1 rounded uppercase ${
+                        currentRole === 'admin'
+                          ? 'bg-amber-500/20 text-amber-300'
+                          : currentRole === 'editor'
+                          ? 'bg-indigo-500/20 text-indigo-300'
+                          : 'bg-gray-800 text-gray-400'
+                      }`}>
+                        {currentRole}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -108,6 +123,19 @@ export const UsersPanel: React.FC<UsersPanelProps> = ({
                     Muted
                   </span>
                 )}
+
+                {isCurrentUserAdmin && !isSelf && onRoleChange && (
+                  <select
+                    value={currentRole}
+                    onChange={(e) => onRoleChange(client.socketId, client.username, e.target.value as UserRole)}
+                    className="bg-gray-950 border border-gray-800 text-gray-300 text-[10px] rounded px-1 py-0.5 font-mono focus:outline-none focus:border-indigo-500"
+                  >
+                    <option value="editor">Editor</option>
+                    <option value="viewer">Viewer</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                )}
+
                 {isCurrentUserAdmin && !isSelf && (
                   <>
                     {onMuteUser && (
