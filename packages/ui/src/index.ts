@@ -14,3 +14,4 @@ export * from './RecordingsPanel';
 export * from './CommandPalette';
 export * from './StatusBar';
 export * from './CodeRunnerPanel';
+export * from './SnippetsPanel';
