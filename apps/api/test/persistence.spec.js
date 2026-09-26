@@ -1,11 +1,10 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { Test } from '@nestjs/testing';
-import { INestApplication } from '@nestjs/common';
 import { PersistenceController } from '../src/persistence.controller';
 
 describe('PersistenceController (/api/persistence)', () => {
-  let app: INestApplication;
-  let controller: PersistenceController;
+  let app;
+  let controller;
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({
@@ -32,7 +31,7 @@ describe('PersistenceController (/api/persistence)', () => {
     expect(saveRes.success).toBe(true);
     expect(saveRes.updatedAt).toBeDefined();
 
-    const getRes: any = controller.getSnapshot('room-abc', 'main.js');
+    const getRes = controller.getSnapshot('room-abc', 'main.js');
     expect(getRes.snapshot).toBe('SGVsbG8gV29ybGQ=');
     expect(getRes.roomId).toBe('room-abc');
   });

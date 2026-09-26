@@ -1,11 +1,10 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { Test } from '@nestjs/testing';
-import { INestApplication } from '@nestjs/common';
 import { LiveKitController } from '../src/livekit.controller';
 
 describe('LiveKitController (POST /api/livekit/token)', () => {
-  let app: INestApplication;
-  let controller: LiveKitController;
+  let app;
+  let controller;
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({

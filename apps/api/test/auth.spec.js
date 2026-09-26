@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { Test } from '@nestjs/testing';
-import { INestApplication, UnauthorizedException } from '@nestjs/common';
+import { UnauthorizedException } from '@nestjs/common';
 import { AuthController } from '../src/auth.controller';
 
 describe('AuthController (/api/auth)', () => {
-  let app: INestApplication;
-  let controller: AuthController;
+  let app;
+  let controller;
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({

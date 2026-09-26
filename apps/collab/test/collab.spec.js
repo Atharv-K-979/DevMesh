@@ -4,15 +4,15 @@ import { HocuspocusProvider } from '@hocuspocus/provider';
 import * as Y from 'yjs';
 import WebSocket from 'ws';
 
-if (typeof (globalThis as any).WebSocket === 'undefined') {
-  (globalThis as any).WebSocket = (WebSocket as any).default || WebSocket;
+if (typeof globalThis.WebSocket === 'undefined') {
+  globalThis.WebSocket = WebSocket.default || WebSocket;
 }
 
-const mod: any = HocuspocusServerModule;
+const mod = HocuspocusServerModule;
 const HocuspocusClass = mod.Hocuspocus || mod.default?.Hocuspocus || mod.Server?.constructor;
 
 describe('CRDT Collaboration Server (Hocuspocus + Yjs)', () => {
-  let server: any;
+  let server;
   const port = 1235;
 
   beforeAll(async () => {
@@ -32,7 +32,7 @@ describe('CRDT Collaboration Server (Hocuspocus + Yjs)', () => {
     const doc1 = new Y.Doc();
     const doc2 = new Y.Doc();
 
-    const WSClass = (WebSocket as any).default || WebSocket;
+    const WSClass = WebSocket.default || WebSocket;
 
     const provider1 = new HocuspocusProvider({
       url: `ws://127.0.0.1:${port}`,
@@ -48,10 +48,10 @@ describe('CRDT Collaboration Server (Hocuspocus + Yjs)', () => {
       WebSocketPolyfill: WSClass,
     });
 
-    const waitForSynced = (provider: HocuspocusProvider) =>
-      new Promise<void>((res) => {
+    const waitForSynced = (provider) =>
+      new Promise((res) => {
         if (provider.isSynced) return res();
-        const handler = (data: any) => {
+        const handler = (data) => {
           if (data === true || data?.state === true || provider.isSynced) {
             provider.off('synced', handler);
             res();

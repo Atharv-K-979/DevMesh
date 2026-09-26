@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { Test } from '@nestjs/testing';
-import { INestApplication, NotFoundException } from '@nestjs/common';
+import { NotFoundException } from '@nestjs/common';
 import { RecordingsController } from '../src/recordings.controller';
 
 describe('RecordingsController (/api/recordings)', () => {
-  let app: INestApplication;
-  let controller: RecordingsController;
+  let app;
+  let controller;
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({

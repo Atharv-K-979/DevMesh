@@ -1,11 +1,10 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { Test } from '@nestjs/testing';
-import { INestApplication } from '@nestjs/common';
 import { AiController } from '../src/ai.controller';
 
 describe('AiController (POST /api/ai/completion)', () => {
-  let app: INestApplication;
-  let controller: AiController;
+  let app;
+  let controller;
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({
