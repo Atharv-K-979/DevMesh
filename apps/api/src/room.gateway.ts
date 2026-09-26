@@ -14,6 +14,8 @@ import {
   SendChatMessagePayload,
   ChatMessage,
   ClientInfo,
+  RoleChangePayload,
+  CursorMovePayload,
 } from '@devmesh/shared-types';
 import { randomUUID } from 'crypto';
 
@@ -155,6 +157,22 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (history.length > 100) history.shift();
 
     this.server.in(roomId).emit(SocketActions.CHAT_BROADCAST, chatMsg);
+  }
+
+  @SubscribeMessage(SocketActions.CURSOR_MOVE)
+  handleCursorMove(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() payload: CursorMovePayload,
+  ) {
+    client.to(payload.roomId).emit(SocketActions.CURSOR_MOVE, payload);
+  }
+
+  @SubscribeMessage(SocketActions.USER_ROLE_CHANGE)
+  handleRoleChange(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() payload: RoleChangePayload,
+  ) {
+    this.server.in(payload.roomId).emit(SocketActions.USER_ROLE_CHANGE, payload);
   }
 
   @SubscribeMessage(SocketActions.RECORDING_NOTIFY)
