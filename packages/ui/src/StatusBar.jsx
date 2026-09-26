@@ -1,23 +1,10 @@
 import React from 'react';
 
-interface StatusBarProps {
-  activeFile: string;
-  cursorLine?: number;
-  cursorColumn?: number;
-  language?: string;
-  tabSize?: number;
-  roomId?: string;
-  onlineCount?: number;
-  syncStatus?: 'synced' | 'syncing' | 'offline';
-  onOpenCommandPalette?: () => void;
-  onSelectLanguage?: () => void;
-}
-
-export const StatusBar: React.FC<StatusBarProps> = ({
+export const StatusBar = ({
   activeFile,
   cursorLine = 1,
   cursorColumn = 1,
-  language = 'TypeScript',
+  language = 'JavaScript',
   tabSize = 2,
   roomId,
   onlineCount = 1,

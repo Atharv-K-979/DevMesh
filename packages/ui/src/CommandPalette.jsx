@@ -1,20 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { CommandPaletteAction } from '@devmesh/shared-types';
 
-interface CommandPaletteProps {
-  isOpen: boolean;
-  onClose: () => void;
-  actions: CommandPaletteAction[];
-}
-
-export const CommandPalette: React.FC<CommandPaletteProps> = ({
+export const CommandPalette = ({
   isOpen,
   onClose,
-  actions,
+  actions = [],
 }) => {
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const inputRef = useRef<HTMLInputElement | null>(null);
+  const inputRef = useRef(null);
 
   const filteredActions = actions.filter((act) => {
     const q = query.toLowerCase();
@@ -37,7 +30,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     setSelectedIndex(0);
   }, [query]);
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const handleKeyDown = (e) => {
     if (e.key === 'Escape') {
       e.preventDefault();
       onClose();

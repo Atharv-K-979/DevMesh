@@ -1,19 +1,7 @@
 import React, { useState } from 'react';
-import { ClientInfo, UserRole } from '@devmesh/shared-types';
 
-interface UsersPanelProps {
-  clients: ClientInfo[];
-  currentUsername: string;
-  creatorUsername?: string;
-  mutedUserSockets?: string[];
-  onMuteUser?: (targetSocketId: string, targetUsername: string, mute: boolean) => void;
-  onMuteAll?: () => void;
-  onKickUser?: (targetSocketId: string, targetUsername: string) => void;
-  onRoleChange?: (targetSocketId: string, targetUsername: string, role: UserRole) => void;
-}
-
-export const UsersPanel: React.FC<UsersPanelProps> = ({
-  clients,
+export const UsersPanel = ({
+  clients = [],
   currentUsername,
   creatorUsername,
   mutedUserSockets = [],
@@ -30,7 +18,7 @@ export const UsersPanel: React.FC<UsersPanelProps> = ({
     client.username.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleKickWithConfirm = (socketId: string, targetUsername: string) => {
+  const handleKickWithConfirm = (socketId, targetUsername) => {
     if (window.confirm(`Are you sure you want to remove ${targetUsername} from the room?`)) {
       onKickUser?.(socketId, targetUsername);
     }
@@ -78,7 +66,7 @@ export const UsersPanel: React.FC<UsersPanelProps> = ({
           const isSelf = client.username === currentUsername;
           const isOwner = client.username === creatorUsername;
           const isMuted = mutedUserSockets.includes(client.socketId);
-          const currentRole: UserRole = client.role || (isOwner ? 'admin' : 'editor');
+          const currentRole = client.role || (isOwner ? 'admin' : 'editor');
 
           return (
             <div
@@ -127,7 +115,7 @@ export const UsersPanel: React.FC<UsersPanelProps> = ({
                 {isCurrentUserAdmin && !isSelf && onRoleChange && (
                   <select
                     value={currentRole}
-                    onChange={(e) => onRoleChange(client.socketId, client.username, e.target.value as UserRole)}
+                    onChange={(e) => onRoleChange(client.socketId, client.username, e.target.value)}
                     className="bg-gray-950 border border-gray-800 text-gray-300 text-[10px] rounded px-1 py-0.5 font-mono focus:outline-none focus:border-indigo-500"
                   >
                     <option value="editor">Editor</option>

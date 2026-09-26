@@ -1,26 +1,18 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { WhiteboardElement, WhiteboardTool } from '@devmesh/shared-types';
 
-interface WhiteboardPanelProps {
-  elements?: WhiteboardElement[];
-  onElementsChange?: (elements: WhiteboardElement[]) => void;
-}
-
-export const WhiteboardPanel: React.FC<WhiteboardPanelProps> = ({
+export const WhiteboardPanel = ({
   elements: initialElements = [],
   onElementsChange,
 }) => {
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const [elements, setElements] = useState<WhiteboardElement[]>(initialElements);
-  const [tool, setTool] = useState<WhiteboardTool>('pencil');
+  const canvasRef = useRef(null);
+  const [elements, setElements] = useState(initialElements);
+  const [tool, setTool] = useState('pencil');
   const [color, setColor] = useState('#6366f1');
   const [strokeWidth, setStrokeWidth] = useState(3);
-  const [fill, setFill] = useState(false);
-  const [showGrid, setShowGrid] = useState(true);
   const [isDrawing, setIsDrawing] = useState(false);
-  const [currentElement, setCurrentElement] = useState<WhiteboardElement | null>(null);
+  const [currentElement, setCurrentElement] = useState(null);
 
-  const colors = ['#ffffff', '#6366f1', '#10b981', '#f59e0b', '#ef4444', '#06b6d4', '#ec4899'];
+  const colors = ['#ffffff', '#6366f1', '#10b981', '#f59e0b', '#ef4444', '#06b6d4'];
 
   useEffect(() => {
     setElements(initialElements);
@@ -33,28 +25,6 @@ export const WhiteboardPanel: React.FC<WhiteboardPanelProps> = ({
     if (!ctx) return;
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // Draw background grid
-    if (showGrid) {
-      ctx.save();
-      ctx.strokeStyle = '#1f2937';
-      ctx.lineWidth = 0.5;
-      const gridSize = 24;
-      for (let x = 0; x < canvas.width; x += gridSize) {
-        ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, canvas.height);
-        ctx.stroke();
-      }
-      for (let y = 0; y < canvas.height; y += gridSize) {
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(canvas.width, y);
-        ctx.stroke();
-      }
-      ctx.restore();
-    }
-
     const all = [...elements, ...(currentElement ? [currentElement] : [])];
 
     all.forEach((el) => {
@@ -66,7 +36,7 @@ export const WhiteboardPanel: React.FC<WhiteboardPanelProps> = ({
       ctx.lineJoin = 'round';
 
       if (el.type === 'eraser') {
-        ctx.strokeStyle = '#030712';
+        ctx.strokeStyle = '#030712'; // canvas bg color
       }
 
       if (el.type === 'pencil' || el.type === 'eraser') {
@@ -77,28 +47,12 @@ export const WhiteboardPanel: React.FC<WhiteboardPanelProps> = ({
           ctx.stroke();
         }
       } else if (
-        el.type === 'line' &&
-        el.x !== undefined &&
-        el.y !== undefined &&
-        el.x2 !== undefined &&
-        el.y2 !== undefined
-      ) {
-        ctx.beginPath();
-        ctx.moveTo(el.x, el.y);
-        ctx.lineTo(el.x2, el.y2);
-        ctx.stroke();
-      } else if (
         el.type === 'rectangle' &&
         el.x !== undefined &&
         el.y !== undefined &&
         el.width !== undefined &&
         el.height !== undefined
       ) {
-        if (el.fill) {
-          ctx.globalAlpha = 0.25;
-          ctx.fillRect(el.x, el.y, el.width, el.height);
-          ctx.globalAlpha = 1.0;
-        }
         ctx.strokeRect(el.x, el.y, el.width, el.height);
       } else if (
         el.type === 'circle' &&
@@ -110,14 +64,9 @@ export const WhiteboardPanel: React.FC<WhiteboardPanelProps> = ({
         ctx.beginPath();
         const radius = Math.sqrt(el.width ** 2 + el.height ** 2) / 2;
         ctx.arc(el.x + el.width / 2, el.y + el.height / 2, Math.abs(radius), 0, Math.PI * 2);
-        if (el.fill) {
-          ctx.globalAlpha = 0.25;
-          ctx.fill();
-          ctx.globalAlpha = 1.0;
-        }
         ctx.stroke();
       } else if (el.type === 'text' && el.x !== undefined && el.y !== undefined && el.text) {
-        ctx.font = `${Math.max(14, el.strokeWidth * 6)}px sans-serif`;
+        ctx.font = `${el.strokeWidth * 6}px sans-serif`;
         ctx.fillText(el.text, el.x, el.y);
       }
       ctx.restore();
@@ -126,9 +75,9 @@ export const WhiteboardPanel: React.FC<WhiteboardPanelProps> = ({
 
   useEffect(() => {
     redrawCanvas();
-  }, [elements, currentElement, showGrid]);
+  }, [elements, currentElement]);
 
-  const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
+  const handleMouseDown = (e) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const rect = canvas.getBoundingClientRect();
@@ -138,7 +87,7 @@ export const WhiteboardPanel: React.FC<WhiteboardPanelProps> = ({
     if (tool === 'text') {
       const text = window.prompt('Enter text to place on whiteboard:');
       if (text && text.trim()) {
-        const newEl: WhiteboardElement = {
+        const newEl = {
           id: Math.random().toString(36).substring(7),
           type: 'text',
           x,
@@ -165,17 +114,6 @@ export const WhiteboardPanel: React.FC<WhiteboardPanelProps> = ({
         color: tool === 'eraser' ? '#030712' : color,
         strokeWidth: tool === 'eraser' ? strokeWidth * 3 : strokeWidth,
       });
-    } else if (tool === 'line') {
-      setCurrentElement({
-        id: Math.random().toString(36).substring(7),
-        type: 'line',
-        x,
-        y,
-        x2: x,
-        y2: y,
-        color,
-        strokeWidth,
-      });
     } else if (tool === 'rectangle' || tool === 'circle') {
       setCurrentElement({
         id: Math.random().toString(36).substring(7),
@@ -186,12 +124,11 @@ export const WhiteboardPanel: React.FC<WhiteboardPanelProps> = ({
         height: 0,
         color,
         strokeWidth,
-        fill,
       });
     }
   };
 
-  const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+  const handleMouseMove = (e) => {
     if (!isDrawing || !currentElement) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -203,12 +140,6 @@ export const WhiteboardPanel: React.FC<WhiteboardPanelProps> = ({
       setCurrentElement({
         ...currentElement,
         points: [...currentElement.points, { x, y }],
-      });
-    } else if (tool === 'line') {
-      setCurrentElement({
-        ...currentElement,
-        x2: x,
-        y2: y,
       });
     } else if (
       (tool === 'rectangle' || tool === 'circle') &&
@@ -262,7 +193,7 @@ export const WhiteboardPanel: React.FC<WhiteboardPanelProps> = ({
       {/* Whiteboard Controls */}
       <div className="p-2 border-b border-gray-800 flex flex-wrap items-center justify-between gap-2 bg-gray-900/60">
         <div className="flex items-center gap-1">
-          {(['pencil', 'line', 'rectangle', 'circle', 'text', 'eraser'] as WhiteboardTool[]).map((t) => (
+          {['pencil', 'rectangle', 'circle', 'text', 'eraser'].map((t) => (
             <button
               key={t}
               onClick={() => setTool(t)}
@@ -275,29 +206,6 @@ export const WhiteboardPanel: React.FC<WhiteboardPanelProps> = ({
               {t}
             </button>
           ))}
-        </div>
-
-        {/* Fill and Grid Toggles */}
-        <div className="flex items-center gap-2">
-          {(tool === 'rectangle' || tool === 'circle') && (
-            <button
-              onClick={() => setFill(!fill)}
-              className={`px-2 py-1 rounded text-xs transition-colors border ${
-                fill ? 'bg-indigo-600/30 border-indigo-500 text-indigo-300 font-bold' : 'bg-gray-900 border-gray-800 text-gray-400'
-              }`}
-            >
-              {fill ? 'Fill: On' : 'Fill: Off'}
-            </button>
-          )}
-
-          <button
-            onClick={() => setShowGrid(!showGrid)}
-            className={`px-2 py-1 rounded text-xs transition-colors border ${
-              showGrid ? 'bg-gray-800 border-gray-700 text-gray-200' : 'bg-gray-900 border-gray-800 text-gray-500'
-            }`}
-          >
-            Grid: {showGrid ? 'On' : 'Off'}
-          </button>
         </div>
 
         {/* Stroke width selector */}
@@ -318,7 +226,7 @@ export const WhiteboardPanel: React.FC<WhiteboardPanelProps> = ({
           ))}
         </div>
 
-        {/* Color Palette */}
+        {/* Color Palette (disabled for eraser) */}
         <div className="flex items-center gap-1.5">
           {colors.map((c) => (
             <button
@@ -360,8 +268,8 @@ export const WhiteboardPanel: React.FC<WhiteboardPanelProps> = ({
       <div className="flex-1 relative overflow-hidden bg-gray-950 cursor-crosshair">
         <canvas
           ref={canvasRef}
-          width={1600}
-          height={1000}
+          width={1200}
+          height={800}
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}

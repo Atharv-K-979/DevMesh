@@ -1,21 +1,14 @@
 import React, { useState } from 'react';
-import { CodeSnippet } from '@devmesh/shared-types';
 
-interface SnippetsPanelProps {
-  onInsertCode?: (snippet: string) => void;
-}
-
-const DEFAULT_SNIPPETS: CodeSnippet[] = [
+const DEFAULT_SNIPPETS = [
   {
     id: 'snip-1',
     title: 'Express REST Endpoint',
     description: 'Basic Express router endpoint with error handling',
-    language: 'typescript',
+    language: 'javascript',
     tags: ['backend', 'express', 'node'],
     createdAt: Date.now(),
-    code: `import { Request, Response, NextFunction } from 'express';
-
-export const handleGetResource = async (req: Request, res: Response, next: NextFunction) => {
+    code: `export const handleGetResource = async (req, res, next) => {
   try {
     const { id } = req.params;
     res.json({ success: true, data: { id, timestamp: Date.now() } });
@@ -28,13 +21,13 @@ export const handleGetResource = async (req: Request, res: Response, next: NextF
     id: 'snip-2',
     title: 'React useDebounce Hook',
     description: 'Debounce value updates with configurable delay',
-    language: 'typescript',
+    language: 'javascript',
     tags: ['react', 'hooks', 'frontend'],
     createdAt: Date.now(),
     code: `import { useState, useEffect } from 'react';
 
-export function useDebounce<T>(value: T, delay: number = 300): T {
-  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+export function useDebounce(value, delay = 300) {
+  const [debouncedValue, setDebouncedValue] = useState(value);
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedValue(value), delay);
@@ -47,11 +40,11 @@ export function useDebounce<T>(value: T, delay: number = 300): T {
   {
     id: 'snip-3',
     title: 'Binary Search Implementation',
-    description: 'Generic binary search algorithm for sorted arrays',
-    language: 'typescript',
+    description: 'Binary search algorithm for sorted arrays',
+    language: 'javascript',
     tags: ['algorithm', 'data-structures'],
     createdAt: Date.now(),
-    code: `export function binarySearch<T>(arr: T[], target: T): number {
+    code: `export function binarySearch(arr, target) {
   let low = 0;
   let high = arr.length - 1;
 
@@ -87,15 +80,15 @@ async def create_item(item: Item):
   },
 ];
 
-export const SnippetsPanel: React.FC<SnippetsPanelProps> = ({ onInsertCode }) => {
-  const [snippets, setSnippets] = useState<CodeSnippet[]>(DEFAULT_SNIPPETS);
+export const SnippetsPanel = ({ onInsertCode }) => {
+  const [snippets, setSnippets] = useState(DEFAULT_SNIPPETS);
   const [query, setQuery] = useState('');
-  const [selectedTag, setSelectedTag] = useState<string | null>(null);
+  const [selectedTag, setSelectedTag] = useState(null);
   const [isCreating, setIsCreating] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const [newDesc, setNewDesc] = useState('');
   const [newCode, setNewCode] = useState('');
-  const [newLang, setNewLang] = useState('typescript');
+  const [newLang, setNewLang] = useState('javascript');
 
   const allTags = Array.from(new Set(snippets.flatMap((s) => s.tags)));
 
@@ -108,11 +101,11 @@ export const SnippetsPanel: React.FC<SnippetsPanelProps> = ({ onInsertCode }) =>
     return matchesQuery && matchesTag;
   });
 
-  const handleAddSnippet = (e: React.FormEvent) => {
+  const handleAddSnippet = (e) => {
     e.preventDefault();
     if (!newTitle.trim() || !newCode.trim()) return;
 
-    const snippet: CodeSnippet = {
+    const snippet = {
       id: `custom-${Date.now()}`,
       title: newTitle.trim(),
       description: newDesc.trim() || 'Custom snippet',
@@ -129,7 +122,7 @@ export const SnippetsPanel: React.FC<SnippetsPanelProps> = ({ onInsertCode }) =>
     setNewCode('');
   };
 
-  const handleDeleteSnippet = (id: string) => {
+  const handleDeleteSnippet = (id) => {
     setSnippets(snippets.filter((s) => s.id !== id));
   };
 
@@ -258,12 +251,12 @@ export const SnippetsPanel: React.FC<SnippetsPanelProps> = ({ onInsertCode }) =>
               </pre>
 
               <div className="flex flex-wrap gap-1">
-                {s.tags.map((t) => (
+                {s.tags.map((tag) => (
                   <span
-                    key={t}
+                    key={tag}
                     className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-gray-950 text-gray-500 border border-gray-800"
                   >
-                    #{t}
+                    #{tag}
                   </span>
                 ))}
               </div>

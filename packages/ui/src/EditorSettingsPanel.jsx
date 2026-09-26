@@ -1,21 +1,6 @@
 import React from 'react';
 
-interface EditorSettingsPanelProps {
-  fontSize: number;
-  onFontSizeChange: (size: number) => void;
-  theme: string;
-  onThemeChange: (theme: string) => void;
-  tabSize: number;
-  onTabSizeChange: (size: number) => void;
-  lineWrapping: boolean;
-  onLineWrappingChange: (wrapping: boolean) => void;
-  language?: string;
-  onLanguageChange?: (language: string) => void;
-  fontFamily?: string;
-  onFontFamilyChange?: (fontFamily: string) => void;
-}
-
-export const EditorSettingsPanel: React.FC<EditorSettingsPanelProps> = ({
+export const EditorSettingsPanel = ({
   fontSize,
   onFontSizeChange,
   theme,

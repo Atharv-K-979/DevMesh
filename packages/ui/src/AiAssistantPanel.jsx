@@ -1,23 +1,16 @@
 import React, { useState } from 'react';
-import { AiAction, AiCompletionRequest, AiCompletionResponse } from '@devmesh/shared-types';
 
-interface AiAssistantPanelProps {
-  onRunAiAction: (req: AiCompletionRequest) => Promise<AiCompletionResponse>;
-  currentCodeContext?: string;
-  onInsertCode?: (codeSnippet: string) => void;
-}
-
-export const AiAssistantPanel: React.FC<AiAssistantPanelProps> = ({
+export const AiAssistantPanel = ({
   onRunAiAction,
   currentCodeContext = '',
   onInsertCode,
 }) => {
   const [prompt, setPrompt] = useState('');
-  const [action, setAction] = useState<AiAction>('explain');
-  const [provider, setProvider] = useState<'anthropic' | 'openai'>('anthropic');
+  const [action, setAction] = useState('explain');
+  const [provider, setProvider] = useState('anthropic');
   const [loading, setLoading] = useState(false);
-  const [response, setResponse] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [response, setResponse] = useState(null);
+  const [error, setError] = useState(null);
 
   const handleExecute = async () => {
     if (!prompt.trim() && !currentCodeContext) return;
@@ -31,7 +24,7 @@ export const AiAssistantPanel: React.FC<AiAssistantPanelProps> = ({
         contextCode: currentCodeContext,
       });
       setResponse(res.result);
-    } catch (err: any) {
+    } catch (err) {
       setError(err?.message || 'AI generation failed');
     } finally {
       setLoading(false);
@@ -50,7 +43,7 @@ export const AiAssistantPanel: React.FC<AiAssistantPanelProps> = ({
       <div className="p-3 space-y-3 border-b border-gray-800">
         {/* Action selector */}
         <div className="grid grid-cols-4 gap-1">
-          {(['explain', 'generate', 'refactor', 'fix'] as AiAction[]).map((act) => (
+          {['explain', 'generate', 'refactor', 'fix'].map((act) => (
             <button
               key={act}
               onClick={() => setAction(act)}

@@ -1,12 +1,4 @@
 import React, { useState } from 'react';
-import { CodeExecutionRequest, CodeExecutionResult } from '@devmesh/shared-types';
-
-interface CodeRunnerPanelProps {
-  currentCode: string;
-  activeFilePath?: string;
-  language?: string;
-  onExecuteCode?: (req: CodeExecutionRequest) => Promise<CodeExecutionResult>;
-}
 
 const PlayIcon = () => (
   <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
@@ -26,15 +18,15 @@ const CopyIcon = () => (
   </svg>
 );
 
-export const CodeRunnerPanel: React.FC<CodeRunnerPanelProps> = ({
-  currentCode,
+export const CodeRunnerPanel = ({
+  currentCode = '',
   activeFilePath = 'index.ts',
   language = 'javascript',
   onExecuteCode,
 }) => {
   const [stdin, setStdin] = useState('');
   const [isRunning, setIsRunning] = useState(false);
-  const [result, setResult] = useState<CodeExecutionResult | null>(null);
+  const [result, setResult] = useState(null);
   const [showStdin, setShowStdin] = useState(false);
 
   const handleRun = async () => {
@@ -49,10 +41,9 @@ export const CodeRunnerPanel: React.FC<CodeRunnerPanelProps> = ({
         });
         setResult(res);
       } else {
-        // Built-in browser-based JavaScript sandbox runner fallback
         const startTime = performance.now();
-        const logs: string[] = [];
-        const errors: string[] = [];
+        const logs = [];
+        const errors = [];
 
         const originalLog = console.log;
         const originalError = console.error;
@@ -65,13 +56,12 @@ export const CodeRunnerPanel: React.FC<CodeRunnerPanelProps> = ({
             errors.push(args.map((a) => (typeof a === 'object' ? JSON.stringify(a, null, 2) : String(a))).join(' '));
           };
 
-          // Safe execution wrapper
           const fn = new Function('input', currentCode);
           const ret = fn(stdin);
           if (ret !== undefined && logs.length === 0) {
             logs.push(typeof ret === 'object' ? JSON.stringify(ret, null, 2) : String(ret));
           }
-        } catch (err: any) {
+        } catch (err) {
           errors.push(err?.stack || err?.message || String(err));
         } finally {
           console.log = originalLog;
@@ -87,7 +77,7 @@ export const CodeRunnerPanel: React.FC<CodeRunnerPanelProps> = ({
           timestamp: Date.now(),
         });
       }
-    } catch (err: any) {
+    } catch (err) {
       setResult({
         stdout: '',
         stderr: err?.message || 'Execution error',

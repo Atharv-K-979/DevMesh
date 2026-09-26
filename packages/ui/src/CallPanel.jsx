@@ -1,13 +1,6 @@
 import React, { useState } from 'react';
-import { LiveKitTokenResponse } from '@devmesh/shared-types';
 
-interface CallPanelProps {
-  roomId: string;
-  username: string;
-  onFetchToken: () => Promise<LiveKitTokenResponse>;
-}
-
-const MicIcon = ({ active }: { active: boolean }) => (
+const MicIcon = ({ active }) => (
   <svg className="w-4 h-4 fill-none stroke-current stroke-2" viewBox="0 0 24 24">
     {active ? (
       <path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 003-3V6a3 3 0 00-6 0v6.75a3 3 0 003 3z" />
@@ -17,7 +10,7 @@ const MicIcon = ({ active }: { active: boolean }) => (
   </svg>
 );
 
-const CameraIcon = ({ active }: { active: boolean }) => (
+const CameraIcon = ({ active }) => (
   <svg className="w-4 h-4 fill-none stroke-current stroke-2" viewBox="0 0 24 24">
     {active ? (
       <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 10.5l4.72-4.72a.75.75 0 011.28.53v11.38a.75.75 0 01-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25h-9A2.25 2.25 0 002.25 7.5v9a2.25 2.25 0 002.25 2.25z" />
@@ -39,24 +32,24 @@ const PhoneOffIcon = () => (
   </svg>
 );
 
-export const CallPanel: React.FC<CallPanelProps> = ({ roomId, username, onFetchToken }) => {
+export const CallPanel = ({ roomId, username, onFetchToken }) => {
   const [isInCall, setIsInCall] = useState(false);
   const [isMicOn, setIsMicOn] = useState(true);
   const [isCameraOn, setIsCameraOn] = useState(true);
   const [isSharing, setIsSharing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState(null);
 
   const handleJoinCall = async () => {
     setIsLoading(true);
     setError(null);
     try {
       const res = await onFetchToken();
-      if (!res.isConfigured) {
+      if (!res?.isConfigured) {
         setError('LiveKit media server is not currently configured.');
       }
       setIsInCall(true);
-    } catch (err: any) {
+    } catch (err) {
       setError(err?.message || 'Failed to connect to media session');
     } finally {
       setIsLoading(false);

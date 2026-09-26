@@ -1,0 +1,21 @@
+// Socket actions and events
+export const SocketActions = Object.freeze({
+  JOIN: 'join',
+  JOINED: 'joined',
+  DISCONNECTED: 'disconnected',
+  LEAVE: 'leave',
+  CODE_CHANGE: 'code-change',
+  SYNC_CODE: 'sync-code',
+  CHAT_SEND: 'chat-message:send',
+  CHAT_BROADCAST: 'chat-message:broadcast',
+  CHAT_HISTORY: 'chat-history',
+  RECORDING_NOTIFY: 'recording-notify',
+  USER_MUTE: 'user-mute',
+  USER_KICK: 'user-kick',
+  USER_ROLE_CHANGE: 'user-role-change',
+  FILE_TREE_UPDATE: 'file-tree:update',
+  CURSOR_AWARENESS: 'cursor-awareness',
+  CURSOR_MOVE: 'cursor-move',
+  CODE_EXECUTE: 'code:execute',
+  CODE_EXECUTE_RESULT: 'code:execute-result',
+});

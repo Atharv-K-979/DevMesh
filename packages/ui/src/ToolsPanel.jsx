@@ -1,25 +1,5 @@
 import React from 'react';
 
-export type ActiveTool =
-  | 'files'
-  | 'chat'
-  | 'call'
-  | 'users'
-  | 'ai'
-  | 'whiteboard'
-  | 'recordings'
-  | 'runner'
-  | 'snippets'
-  | 'settings'
-  | null;
-
-interface ToolsPanelProps {
-  activeTool: ActiveTool;
-  onSelectTool: (tool: ActiveTool) => void;
-  unreadCount?: number;
-  onlineUsersCount?: number;
-}
-
 const FilesIcon = () => (
   <svg className="w-5 h-5 fill-none stroke-current stroke-2" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25A2.25 2.25 0 018.25 10.5H6A2.25 2.25 0 013.75 8.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25A2.25 2.25 0 0113.5 8.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
@@ -82,20 +62,13 @@ const SettingsIcon = () => (
   </svg>
 );
 
-export const ToolsPanel: React.FC<ToolsPanelProps> = ({
+export const ToolsPanel = ({
   activeTool,
   onSelectTool,
   unreadCount = 0,
   onlineUsersCount = 0,
 }) => {
-  interface ToolItem {
-    id: ActiveTool;
-    label: string;
-    icon: React.ReactNode;
-    badge?: number;
-  }
-
-  const tools: ToolItem[] = [
+  const tools = [
     { id: 'files', label: 'Explorer', icon: <FilesIcon /> },
     { id: 'runner', label: 'Code Runner', icon: <RunnerIcon /> },
     { id: 'snippets', label: 'Snippets', icon: <SnippetsIcon /> },
@@ -115,7 +88,7 @@ export const ToolsPanel: React.FC<ToolsPanelProps> = ({
         return (
           <button
             key={t.id}
-            onClick={() => onSelectTool(isActive ? null : (t.id as ActiveTool))}
+            onClick={() => onSelectTool(isActive ? null : t.id)}
             className={`relative p-2.5 rounded-xl transition-all ${
               isActive
                 ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 shadow-sm'

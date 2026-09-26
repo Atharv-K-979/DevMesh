@@ -1,18 +1,5 @@
 import React, { useState } from 'react';
 
-interface FileTreeProps {
-  files: string[];
-  activeFile: string;
-  onSelectFile: (path: string) => void;
-  onCreateFile: (path: string) => void;
-  onCreateFolder?: (path: string) => void;
-  onDeleteFile: (path: string) => void;
-  onRenameFile?: (oldPath: string, newPath: string) => void;
-  onExportZip: () => void;
-  onImportZip: (file: File) => void;
-  onUploadClick?: () => void;
-}
-
 const UploadIcon = () => (
   <svg className="w-3.5 h-3.5 fill-none stroke-current stroke-2" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
@@ -31,7 +18,7 @@ const EditIcon = () => (
   </svg>
 );
 
-const getFileIcon = (fileName: string) => {
+const getFileIcon = (fileName) => {
   const ext = fileName.split('.').pop()?.toLowerCase();
   switch (ext) {
     case 'js':
@@ -55,8 +42,8 @@ const getFileIcon = (fileName: string) => {
   }
 };
 
-export const FileTree: React.FC<FileTreeProps> = ({
-  files,
+export const FileTree = ({
+  files = [],
   activeFile,
   onSelectFile,
   onCreateFile,
@@ -68,11 +55,11 @@ export const FileTree: React.FC<FileTreeProps> = ({
   onUploadClick,
 }) => {
   const [itemName, setItemName] = useState('');
-  const [createType, setCreateType] = useState<'file' | 'folder' | null>(null);
-  const [editingFile, setEditingFile] = useState<string | null>(null);
+  const [createType, setCreateType] = useState(null);
+  const [editingFile, setEditingFile] = useState(null);
   const [renamedName, setRenamedName] = useState('');
 
-  const handleCreate = (e: React.FormEvent) => {
+  const handleCreate = (e) => {
     e.preventDefault();
     if (!itemName.trim()) return;
     const cleanName = itemName.trim().replace(/^\/+|\/+$/g, '');
@@ -85,13 +72,13 @@ export const FileTree: React.FC<FileTreeProps> = ({
     setCreateType(null);
   };
 
-  const handleStartRename = (filePath: string, e: React.MouseEvent) => {
+  const handleStartRename = (filePath, e) => {
     e.stopPropagation();
     setEditingFile(filePath);
     setRenamedName(filePath);
   };
 
-  const handleSaveRename = (oldPath: string, e: React.FormEvent) => {
+  const handleSaveRename = (oldPath, e) => {
     e.preventDefault();
     e.stopPropagation();
     if (!renamedName.trim() || renamedName.trim() === oldPath) {
@@ -105,7 +92,7 @@ export const FileTree: React.FC<FileTreeProps> = ({
     setEditingFile(null);
   };
 
-  const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImport = (e) => {
     const file = e.target.files?.[0];
     if (file) {
       onImportZip(file);
@@ -171,7 +158,7 @@ export const FileTree: React.FC<FileTreeProps> = ({
           <div className="flex gap-2">
             <input
               type="text"
-              placeholder={createType === 'folder' ? 'e.g. src/utils' : 'e.g. index.ts or components/App.tsx'}
+              placeholder={createType === 'folder' ? 'e.g. src/utils' : 'e.g. index.js or components/App.jsx'}
               value={itemName}
               onChange={(e) => setItemName(e.target.value)}
               className="flex-1 bg-gray-950 text-xs px-2.5 py-1.5 border border-gray-700 rounded-lg text-gray-100 focus:outline-none focus:border-indigo-500 font-mono"
