@@ -11,3 +11,5 @@ export * from './UsersPanel';
 export * from './AiAssistantPanel';
 export * from './WhiteboardPanel';
 export * from './RecordingsPanel';
+export * from './CommandPalette';
+export * from './StatusBar';
