@@ -4,7 +4,7 @@ services:
     name: devmesh-api
     runtime: node
     plan: free
-    buildCommand: pnpm install && pnpm --filter @devmesh/api... build
+    buildCommand: pnpm install --prod=false && pnpm --filter @devmesh/api... build
     startCommand: node apps/api/dist/main.js
     envVars:
       - key: NODE_ENV
