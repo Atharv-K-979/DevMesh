@@ -1,0 +1,50 @@
+services:
+  # 1. DevMesh Backend API (NestJS Gateway & Socket.IO)
+  - type: web
+    name: devmesh-api
+    runtime: node
+    plan: free
+    buildCommand: pnpm install && pnpm --filter @devmesh/api... build
+    startCommand: node apps/api/dist/main.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        value: postgresql://devmesh:CFb4JcgpsrtzUVxPlq9She4Fglq6AQjZ@dpg-darpprt9fdbs73aj2if0-a/devmesh
+      - key: REDIS_URL
+        value: redis://red-darpq6bbc2fs7382elk0:6379
+      - key: JWT_SECRET
+        generateValue: true
+
+  # 2. DevMesh Collaboration Server (Hocuspocus / Yjs WebSockets)
+  - type: web
+    name: devmesh-collab
+    runtime: node
+    plan: free
+    buildCommand: pnpm install && pnpm --filter @devmesh/collab... build
+    startCommand: node apps/collab/src/index.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+
+  # 3. DevMesh Frontend Client (React + Vite SPA)
+  - type: web
+    name: devmesh-client
+    runtime: static
+    buildCommand: pnpm install && pnpm --filter @devmesh/client... build
+    staticPublishPath: apps/client/dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_URL
+        fromService:
+          type: web
+          name: devmesh-api
+          property: host
+      - key: VITE_COLLAB_WS_URL
+        fromService:
+          type: web
+          name: devmesh-collab
+          property: host

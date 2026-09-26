@@ -6,6 +6,7 @@
   "scripts": {
     "build": "swc src -d dist --strip-leading-paths",
     "dev": "swc src -d dist --strip-leading-paths && node dist/main.js",
+    "start": "node dist/main.js",
     "test": "vitest run",
     "lint": "eslint \"src/**/*.js\""
   },

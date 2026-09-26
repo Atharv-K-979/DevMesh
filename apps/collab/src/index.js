@@ -8,7 +8,7 @@ const HocuspocusClass = mod.Hocuspocus || mod.default?.Hocuspocus || mod.Server?
 export const docStore = new Map();
 
 export const server = new HocuspocusClass({
-  port: Number(process.env.HOCUSPOCUS_PORT || 1234),
+  port: Number(process.env.PORT || process.env.HOCUSPOCUS_PORT || 1234),
   extensions: [
     new Database({
       fetch: async ({ documentName }) => {
@@ -22,7 +22,7 @@ export const server = new HocuspocusClass({
 });
 
 if (process.env.NODE_ENV !== 'test') {
-  const port = Number(process.env.HOCUSPOCUS_PORT || 1234);
+  const port = Number(process.env.PORT || process.env.HOCUSPOCUS_PORT || 1234);
   server.listen(port).then(() => {
     console.log(`DevMesh Hocuspocus Collab Server running on port ${port}`);
   });
