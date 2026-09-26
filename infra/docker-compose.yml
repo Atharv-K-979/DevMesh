@@ -49,7 +49,7 @@ services:
     image: livekit/livekit-server:latest
     container_name: devmesh_livekit
     restart: always
-    command: --dev
+    command: --dev --bind 0.0.0.0
     ports:
       - '7880:7880'
       - '7881:7881'

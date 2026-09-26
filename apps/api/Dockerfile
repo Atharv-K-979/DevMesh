@@ -1,6 +1,6 @@
 FROM node:20-alpine AS builder
 WORKDIR /app
-RUN npm install -g pnpm turbo
+RUN npm install -g pnpm@9.1.0 turbo
 COPY . .
 RUN pnpm install --frozen-lockfile
 RUN pnpm --filter @devmesh/api build
