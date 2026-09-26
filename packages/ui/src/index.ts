@@ -13,3 +13,4 @@ export * from './WhiteboardPanel';
 export * from './RecordingsPanel';
 export * from './CommandPalette';
 export * from './StatusBar';
+export * from './CodeRunnerPanel';
