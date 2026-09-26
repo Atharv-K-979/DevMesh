@@ -6,6 +6,8 @@ import { LiveKitController } from './livekit.controller';
 import { RecordingsController } from './recordings.controller';
 import { PersistenceController } from './persistence.controller';
 import { AiController } from './ai.controller';
+import { RunnerController } from './runner.controller';
+import { SnippetsController } from './snippets.controller';
 
 @Module({
   imports: [],
@@ -16,6 +18,8 @@ import { AiController } from './ai.controller';
     RecordingsController,
     PersistenceController,
     AiController,
+    RunnerController,
+    SnippetsController,
   ],
   providers: [RoomGateway],
 })
