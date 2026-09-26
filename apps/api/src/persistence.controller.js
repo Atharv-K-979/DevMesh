@@ -1,14 +1,13 @@
 import { Controller, Post, Get, Body, Param } from '@nestjs/common';
-import { RoomSnapshotDTO } from '@devmesh/shared-types';
 
 @Controller('api/persistence')
 export class PersistenceController {
-  private snapshotDatabase = new Map<string, RoomSnapshotDTO>();
+  snapshotDatabase = new Map();
 
   @Post('snapshot')
-  saveSnapshot(@Body() body: RoomSnapshotDTO): { success: boolean; updatedAt: number } {
+  saveSnapshot(@Body() body) {
     const key = `${body.roomId}:${body.documentName}`;
-    const record: RoomSnapshotDTO = {
+    const record = {
       ...body,
       updatedAt: Date.now(),
     };
@@ -17,10 +16,7 @@ export class PersistenceController {
   }
 
   @Get('snapshot/:roomId/:documentName')
-  getSnapshot(
-    @Param('roomId') roomId: string,
-    @Param('documentName') documentName: string,
-  ): RoomSnapshotDTO | { snapshot: null } {
+  getSnapshot(@Param('roomId') roomId, @Param('documentName') documentName) {
     const key = `${roomId}:${documentName}`;
     const found = this.snapshotDatabase.get(key);
     if (!found) {

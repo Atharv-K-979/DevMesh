@@ -4,19 +4,8 @@ import {
   MessageBody,
   ConnectedSocket,
   WebSocketServer,
-  OnGatewayConnection,
-  OnGatewayDisconnect,
 } from '@nestjs/websockets';
-import { Server, Socket } from 'socket.io';
-import {
-  SocketActions,
-  JoinPayload,
-  SendChatMessagePayload,
-  ChatMessage,
-  ClientInfo,
-  RoleChangePayload,
-  CursorMovePayload,
-} from '@devmesh/shared-types';
+import { SocketActions } from '@devmesh/shared-types';
 import { randomUUID } from 'crypto';
 
 @WebSocketGateway({
@@ -24,19 +13,19 @@ import { randomUUID } from 'crypto';
     origin: '*',
   },
 })
-export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect {
+export class RoomGateway {
   @WebSocketServer()
-  server!: Server;
+  server;
 
-  private userSocketMap: Record<string, string> = {};
-  private socketRoomMap: Record<string, string> = {};
-  private roomChatHistory: Map<string, ChatMessage[]> = new Map();
+  userSocketMap = {};
+  socketRoomMap = {};
+  roomChatHistory = new Map();
 
-  handleConnection(client: Socket) {
+  handleConnection(client) {
     console.log(`Client connected: ${client.id}`);
   }
 
-  handleDisconnect(client: Socket) {
+  handleDisconnect(client) {
     const username = this.userSocketMap[client.id];
     const roomId = this.socketRoomMap[client.id];
     delete this.userSocketMap[client.id];
@@ -51,7 +40,7 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect {
         clients: updatedClients,
       });
 
-      const leaveSystemMsg: ChatMessage = {
+      const leaveSystemMsg = {
         id: randomUUID(),
         roomId,
         senderId: 'system',
@@ -63,7 +52,7 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect {
       if (!this.roomChatHistory.has(roomId)) {
         this.roomChatHistory.set(roomId, []);
       }
-      const history = this.roomChatHistory.get(roomId)!;
+      const history = this.roomChatHistory.get(roomId);
       history.push(leaveSystemMsg);
       if (history.length > 100) history.shift();
 
@@ -73,11 +62,11 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect {
     console.log(`Client disconnected: ${client.id}`);
   }
 
-  private getAllConnectedClients(roomId: string, excludeSocketId?: string): ClientInfo[] {
+  getAllConnectedClients(roomId, excludeSocketId) {
     const room = this.server.sockets.adapter.rooms.get(roomId);
     if (!room) return [];
 
-    const rawClients: ClientInfo[] = Array.from(room)
+    const rawClients = Array.from(room)
       .filter((socketId) => socketId !== excludeSocketId && !!this.userSocketMap[socketId])
       .map((socketId) => ({
         socketId,
@@ -85,7 +74,7 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect {
       }));
 
     // Deduplicate by username so participants are unique in active list
-    const uniqueMap = new Map<string, ClientInfo>();
+    const uniqueMap = new Map();
     for (const client of rawClients) {
       uniqueMap.set(client.username, client);
     }
@@ -93,10 +82,7 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @SubscribeMessage(SocketActions.JOIN)
-  handleJoin(
-    @ConnectedSocket() client: Socket,
-    @MessageBody() payload: JoinPayload,
-  ) {
+  handleJoin(@ConnectedSocket() client, @MessageBody() payload) {
     const { roomId, username } = payload;
     this.userSocketMap[client.id] = username;
     this.socketRoomMap[client.id] = roomId;
@@ -111,7 +97,7 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect {
       socketId: client.id,
     });
 
-    const joinSystemMsg: ChatMessage = {
+    const joinSystemMsg = {
       id: randomUUID(),
       roomId,
       senderId: 'system',
@@ -123,7 +109,7 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (!this.roomChatHistory.has(roomId)) {
       this.roomChatHistory.set(roomId, []);
     }
-    const history = this.roomChatHistory.get(roomId)!;
+    const history = this.roomChatHistory.get(roomId);
     history.push(joinSystemMsg);
     if (history.length > 100) history.shift();
 
@@ -134,13 +120,10 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @SubscribeMessage(SocketActions.CHAT_SEND)
-  handleChatMessage(
-    @ConnectedSocket() client: Socket,
-    @MessageBody() payload: SendChatMessagePayload,
-  ) {
+  handleChatMessage(@ConnectedSocket() client, @MessageBody() payload) {
     const { roomId, content, senderName } = payload;
 
-    const chatMsg: ChatMessage = {
+    const chatMsg = {
       id: randomUUID(),
       roomId,
       senderId: client.id,
@@ -152,7 +135,7 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (!this.roomChatHistory.has(roomId)) {
       this.roomChatHistory.set(roomId, []);
     }
-    const history = this.roomChatHistory.get(roomId)!;
+    const history = this.roomChatHistory.get(roomId);
     history.push(chatMsg);
     if (history.length > 100) history.shift();
 
@@ -160,42 +143,27 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @SubscribeMessage(SocketActions.CURSOR_MOVE)
-  handleCursorMove(
-    @ConnectedSocket() client: Socket,
-    @MessageBody() payload: CursorMovePayload,
-  ) {
+  handleCursorMove(@ConnectedSocket() client, @MessageBody() payload) {
     client.to(payload.roomId).emit(SocketActions.CURSOR_MOVE, payload);
   }
 
   @SubscribeMessage(SocketActions.USER_ROLE_CHANGE)
-  handleRoleChange(
-    @ConnectedSocket() client: Socket,
-    @MessageBody() payload: RoleChangePayload,
-  ) {
+  handleRoleChange(@ConnectedSocket() client, @MessageBody() payload) {
     this.server.in(payload.roomId).emit(SocketActions.USER_ROLE_CHANGE, payload);
   }
 
   @SubscribeMessage(SocketActions.RECORDING_NOTIFY)
-  handleRecordingNotify(
-    @ConnectedSocket() client: Socket,
-    @MessageBody() payload: { roomId: string; username: string; action: 'start' | 'stop'; title?: string },
-  ) {
+  handleRecordingNotify(@ConnectedSocket() client, @MessageBody() payload) {
     this.server.in(payload.roomId).emit(SocketActions.RECORDING_NOTIFY, payload);
   }
 
   @SubscribeMessage(SocketActions.USER_MUTE)
-  handleUserMute(
-    @ConnectedSocket() client: Socket,
-    @MessageBody() payload: { roomId: string; targetSocketId: string; targetUsername: string; mute: boolean; byUsername: string },
-  ) {
+  handleUserMute(@ConnectedSocket() client, @MessageBody() payload) {
     this.server.in(payload.roomId).emit(SocketActions.USER_MUTE, payload);
   }
 
   @SubscribeMessage(SocketActions.USER_KICK)
-  handleUserKick(
-    @ConnectedSocket() client: Socket,
-    @MessageBody() payload: { roomId: string; targetSocketId: string; targetUsername: string; byUsername: string },
-  ) {
+  handleUserKick(@ConnectedSocket() client, @MessageBody() payload) {
     this.server.in(payload.roomId).emit(SocketActions.USER_KICK, payload);
     const targetClient = this.server.sockets.sockets.get(payload.targetSocketId);
     if (targetClient) {

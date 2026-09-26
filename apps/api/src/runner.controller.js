@@ -1,28 +1,27 @@
 import { Controller, Post, Body } from '@nestjs/common';
-import { CodeExecutionRequest, CodeExecutionResult } from '@devmesh/shared-types';
 
 @Controller('api/runner')
 export class RunnerController {
   @Post('execute')
-  async executeCode(@Body() body: CodeExecutionRequest): Promise<CodeExecutionResult> {
+  async executeCode(@Body() body) {
     const startTime = Date.now();
     const language = (body.language || 'javascript').toLowerCase();
     const code = body.code || '';
     const stdin = body.input || '';
 
-    const logs: string[] = [];
-    const errors: string[] = [];
+    const logs = [];
+    const errors = [];
 
     if (language === 'javascript' || language === 'typescript') {
       try {
         const consoleCapture = {
-          log: (...args: any[]) => {
+          log: (...args) => {
             logs.push(args.map((a) => (typeof a === 'object' ? JSON.stringify(a, null, 2) : String(a))).join(' '));
           },
-          error: (...args: any[]) => {
+          error: (...args) => {
             errors.push(args.map((a) => (typeof a === 'object' ? JSON.stringify(a, null, 2) : String(a))).join(' '));
           },
-          warn: (...args: any[]) => {
+          warn: (...args) => {
             logs.push(`[WARN] ${args.join(' ')}`);
           },
         };
@@ -34,7 +33,7 @@ export class RunnerController {
         if (result !== undefined && logs.length === 0) {
           logs.push(typeof result === 'object' ? JSON.stringify(result, null, 2) : String(result));
         }
-      } catch (err: any) {
+      } catch (err) {
         errors.push(err?.stack || err?.message || String(err));
       }
     } else {

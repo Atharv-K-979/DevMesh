@@ -1,10 +1,9 @@
 import { Controller, Post, Body } from '@nestjs/common';
-import { AiCompletionRequest, AiCompletionResponse } from '@devmesh/shared-types';
 
 @Controller('api/ai')
 export class AiController {
   @Post('completion')
-  async getCompletion(@Body() body: AiCompletionRequest): Promise<AiCompletionResponse> {
+  async getCompletion(@Body() body) {
     const action = body.action || 'generate';
     const prompt = body.prompt || '';
     const code = body.contextCode || '';

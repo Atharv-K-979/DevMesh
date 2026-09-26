@@ -1,11 +1,11 @@
 import * as HocuspocusServerModule from '@hocuspocus/server';
 import { Database } from '@hocuspocus/extension-database';
 
-const mod: any = HocuspocusServerModule;
+const mod = HocuspocusServerModule;
 const HocuspocusClass = mod.Hocuspocus || mod.default?.Hocuspocus || mod.Server?.constructor;
 
 // In-memory CRDT snapshot store for realtime documents and reconnection persistence
-export const docStore = new Map<string, Uint8Array>();
+export const docStore = new Map();
 
 export const server = new HocuspocusClass({
   port: Number(process.env.HOCUSPOCUS_PORT || 1234),

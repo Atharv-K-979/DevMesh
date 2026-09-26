@@ -1,9 +1,8 @@
 import { Controller, Get, Post, Delete, Body, Param } from '@nestjs/common';
-import { CodeSnippet } from '@devmesh/shared-types';
 
 @Controller('api/snippets')
 export class SnippetsController {
-  private snippets: CodeSnippet[] = [
+  snippets = [
     {
       id: 'snip-ws-client',
       title: 'Socket.IO Client Connection',
@@ -46,13 +45,13 @@ export class JwtAuthGuard implements CanActivate {
   ];
 
   @Get()
-  getAllSnippets(): { snippets: CodeSnippet[] } {
+  getAllSnippets() {
     return { snippets: this.snippets };
   }
 
   @Post()
-  createSnippet(@Body() body: Omit<CodeSnippet, 'id' | 'createdAt'>): CodeSnippet {
-    const newSnippet: CodeSnippet = {
+  createSnippet(@Body() body) {
+    const newSnippet = {
       ...body,
       id: `snip_${Date.now()}`,
       createdAt: Date.now(),
@@ -62,7 +61,7 @@ export class JwtAuthGuard implements CanActivate {
   }
 
   @Delete(':id')
-  deleteSnippet(@Param('id') id: string): { success: boolean } {
+  deleteSnippet(@Param('id') id) {
     const beforeLen = this.snippets.length;
     this.snippets = this.snippets.filter((s) => s.id !== id);
     return { success: this.snippets.length < beforeLen };

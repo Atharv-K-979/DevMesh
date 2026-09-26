@@ -3,7 +3,7 @@ import { Controller, Get } from '@nestjs/common';
 @Controller()
 export class AppController {
   @Get('health')
-  getHealth(): { status: string; timestamp: number } {
+  getHealth() {
     return {
       status: 'ok',
       timestamp: Date.now(),
@@ -11,7 +11,7 @@ export class AppController {
   }
 
   @Get()
-  getHome(): { message: string; version: string } {
+  getHome() {
     return {
       message: 'DevMesh API Gateway',
       version: '1.0.0',

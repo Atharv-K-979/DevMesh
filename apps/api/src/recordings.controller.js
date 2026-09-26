@@ -1,29 +1,14 @@
 import { Controller, Post, Get, Delete, Body, Param, NotFoundException } from '@nestjs/common';
-import {
-  StartRecordingRequest,
-  StopRecordingRequest,
-  SessionRecording,
-  RecordingEvent,
-  RecordingListResponse,
-} from '@devmesh/shared-types';
-
-interface ActiveSession {
-  id: string;
-  roomId: string;
-  title: string;
-  startTime: number;
-  events: RecordingEvent[];
-}
 
 @Controller('api/recordings')
 export class RecordingsController {
-  private activeSessions = new Map<string, ActiveSession>();
-  private completedRecordings = new Map<string, SessionRecording[]>();
+  activeSessions = new Map();
+  completedRecordings = new Map();
 
   @Post('start')
-  startRecording(@Body() body: StartRecordingRequest) {
+  startRecording(@Body() body) {
     const id = `rec_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-    const session: ActiveSession = {
+    const session = {
       id,
       roomId: body.roomId,
       title: body.title || `Session ${new Date().toLocaleTimeString()}`,
@@ -43,7 +28,7 @@ export class RecordingsController {
   }
 
   @Post('event')
-  addEvent(@Body() body: { recordingId: string; type: 'code' | 'chat' | 'presence'; author: string; detail: string }) {
+  addEvent(@Body() body) {
     const session = this.activeSessions.get(body.recordingId);
     if (!session) {
       return { success: false, reason: 'Session not active' };
@@ -59,7 +44,7 @@ export class RecordingsController {
   }
 
   @Post('stop')
-  stopRecording(@Body() body: StopRecordingRequest): SessionRecording {
+  stopRecording(@Body() body) {
     const session = this.activeSessions.get(body.recordingId);
     if (!session) {
       throw new NotFoundException('Active recording session not found');
@@ -73,7 +58,7 @@ export class RecordingsController {
       detail: 'Recording session stopped',
     });
 
-    const recording: SessionRecording = {
+    const recording = {
       id: session.id,
       roomId: session.roomId,
       title: session.title,
@@ -91,13 +76,13 @@ export class RecordingsController {
   }
 
   @Get('room/:roomId')
-  getRecordingsForRoom(@Param('roomId') roomId: string): RecordingListResponse {
+  getRecordingsForRoom(@Param('roomId') roomId) {
     const recordings = this.completedRecordings.get(roomId) || [];
     return { recordings };
   }
 
   @Get(':recordingId')
-  getRecordingDetail(@Param('recordingId') recordingId: string): SessionRecording {
+  getRecordingDetail(@Param('recordingId') recordingId) {
     for (const list of this.completedRecordings.values()) {
       const found = list.find((r) => r.id === recordingId);
       if (found) return found;
@@ -106,7 +91,7 @@ export class RecordingsController {
   }
 
   @Delete(':recordingId')
-  deleteRecording(@Param('recordingId') recordingId: string) {
+  deleteRecording(@Param('recordingId') recordingId) {
     let deleted = false;
     for (const [roomId, list] of this.completedRecordings.entries()) {
       const filtered = list.filter((r) => r.id !== recordingId);

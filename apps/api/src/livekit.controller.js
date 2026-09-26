@@ -1,11 +1,10 @@
 import { Controller, Post, Body } from '@nestjs/common';
 import { AccessToken } from 'livekit-server-sdk';
-import { LiveKitTokenRequest, LiveKitTokenResponse } from '@devmesh/shared-types';
 
 @Controller('api/livekit')
 export class LiveKitController {
   @Post('token')
-  async createToken(@Body() body: LiveKitTokenRequest): Promise<LiveKitTokenResponse> {
+  async createToken(@Body() body) {
     const apiKey = process.env.LIVEKIT_API_KEY || 'devkey';
     const apiSecret = process.env.LIVEKIT_API_SECRET || 'secretsecretsecretsecretsecretsecretsecret';
     const wsUrl = process.env.LIVEKIT_URL || 'ws://localhost:7880';

@@ -3,10 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "build": "tsc",
-    "dev": "ts-node src/main.ts",
+    "build": "babel src --out-dir dist --extensions .js",
+    "dev": "node --require @swc-node/register src/main.js",
     "test": "vitest run",
-    "lint": "eslint \"src/**/*.ts\""
+    "lint": "eslint \"src/**/*.js\""
   },
   "dependencies": {
     "@devmesh/shared-types": "workspace:*",
@@ -22,12 +22,10 @@
   },
   "devDependencies": {
     "@nestjs/testing": "^10.4.15",
-    "@types/node": "^22.10.2",
-    "@types/supertest": "^6.0.2",
+    "@swc-node/register": "^1.9.0",
+    "@swc/core": "^1.4.0",
     "socket.io-client": "^4.8.1",
     "supertest": "^7.0.0",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.4.5",
     "vitest": "^2.1.8"
   }
 }
