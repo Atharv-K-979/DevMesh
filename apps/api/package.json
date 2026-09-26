@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "build": "babel src --out-dir dist --extensions .js",
-    "dev": "node --require @swc-node/register src/main.js",
+    "build": "swc src -d dist",
+    "dev": "swc src -d dist && node dist/main.js",
     "test": "vitest run",
     "lint": "eslint \"src/**/*.js\""
   },
@@ -23,9 +23,13 @@
   "devDependencies": {
     "@nestjs/testing": "^10.4.15",
     "@swc-node/register": "^1.9.0",
-    "@swc/core": "^1.4.0",
+    "@swc/cli": "^0.8.1",
+    "@swc/core": "^1.16.2",
+    "@swc/register": "^0.1.10",
     "socket.io-client": "^4.8.1",
     "supertest": "^7.0.0",
+    "unplugin-swc": "^2.0.0",
+    "vite-node": "^6.0.0",
     "vitest": "^2.1.8"
   }
 }

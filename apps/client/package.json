@@ -5,7 +5,7 @@
   "scripts": {
     "build": "vite build",
     "dev": "vite",
-    "test": "echo \"client test passed\"",
+    "test": "vitest run",
     "lint": "eslint \"src/**/*.{js,jsx}\""
   },
   "dependencies": {
