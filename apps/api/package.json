@@ -1,10 +1,11 @@
 {
   "name": "@devmesh/api",
   "version": "0.1.0",
+  "type": "module",
   "private": true,
   "scripts": {
-    "build": "swc src -d dist",
-    "dev": "swc src -d dist && node dist/main.js",
+    "build": "swc src -d dist --strip-leading-paths",
+    "dev": "swc src -d dist --strip-leading-paths && node dist/main.js",
     "test": "vitest run",
     "lint": "eslint \"src/**/*.js\""
   },
