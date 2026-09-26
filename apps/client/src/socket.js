@@ -1,8 +1,8 @@
-import { io, Socket } from 'socket.io-client';
+import { io } from 'socket.io-client';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
-export const initSocket = (): Socket => {
+export const initSocket = () => {
   const options = {
     'force new connection': true,
     reconnectionAttempt: 'Infinity',

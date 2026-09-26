@@ -1,20 +1,5 @@
 import { create } from 'zustand';
 
-export interface WorkspaceState {
-  files: string[];
-  fileContents: Record<string, string>;
-  activeFile: string;
-  openTabs: string[];
-  createFile: (path: string, initialContent?: string) => void;
-  deleteFile: (path: string) => void;
-  renameFile: (oldPath: string, newPath: string) => void;
-  updateFileContent: (path: string, content: string) => void;
-  setActiveFile: (path: string) => void;
-  openTab: (path: string) => void;
-  closeTab: (path: string) => void;
-  setAllFiles: (files: Record<string, string>, active?: string) => void;
-}
-
 const DEFAULT_MAIN_JS = `// Welcome to DevMesh Realtime Collaborative Editor!
 // Code collaboratively with multi-file support, audio/video calls, and AI pair programming.
 
@@ -38,7 +23,7 @@ const DEFAULT_INDEX_HTML = `<!DOCTYPE html>
 </html>
 `;
 
-export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
+export const useWorkspaceStore = create((set, get) => ({
   files: ['main.js', 'index.html'],
   fileContents: {
     'main.js': DEFAULT_MAIN_JS,
@@ -47,7 +32,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   activeFile: 'main.js',
   openTabs: ['main.js', 'index.html'],
 
-  createFile: (path: string, initialContent: string = '') => {
+  createFile: (path, initialContent = '') => {
     const trimmed = path.trim();
     if (!trimmed) return;
     const { files, fileContents, openTabs } = get();
@@ -61,7 +46,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     });
   },
 
-  deleteFile: (path: string) => {
+  deleteFile: (path) => {
     const { files, fileContents, activeFile, openTabs } = get();
     const remainingFiles = files.filter((f) => f !== path);
     const newContents = { ...fileContents };
@@ -81,7 +66,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     });
   },
 
-  renameFile: (oldPath: string, newPath: string) => {
+  renameFile: (oldPath, newPath) => {
     const trimmedNew = newPath.trim();
     if (!trimmedNew || oldPath === trimmedNew) return;
     const { files, fileContents, activeFile, openTabs } = get();
@@ -102,14 +87,14 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     });
   },
 
-  updateFileContent: (path: string, content: string) => {
+  updateFileContent: (path, content) => {
     const { fileContents } = get();
     set({
       fileContents: { ...fileContents, [path]: content },
     });
   },
 
-  setActiveFile: (path: string) => {
+  setActiveFile: (path) => {
     const { openTabs } = get();
     set({
       activeFile: path,
@@ -117,7 +102,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     });
   },
 
-  openTab: (path: string) => {
+  openTab: (path) => {
     const { openTabs } = get();
     if (!openTabs.includes(path)) {
       set({ openTabs: [...openTabs, path], activeFile: path });
@@ -126,7 +111,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     }
   },
 
-  closeTab: (path: string) => {
+  closeTab: (path) => {
     const { openTabs, activeFile } = get();
     const remainingTabs = openTabs.filter((t) => t !== path);
     const newActive =
@@ -137,7 +122,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     });
   },
 
-  setAllFiles: (files: Record<string, string>, active?: string) => {
+  setAllFiles: (files, active) => {
     const fileList = Object.keys(files);
     const targetActive = active && fileList.includes(active) ? active : fileList[0] || '';
     set({

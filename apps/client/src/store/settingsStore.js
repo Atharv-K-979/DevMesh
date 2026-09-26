@@ -1,24 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-export interface EditorSettings {
-  fontFamily: string;
-  fontSize: number;
-  lineHeight: number;
-  theme: string;
-  language: string;
-  tabSize: number;
-  lineWrapping: boolean;
-}
-
-interface SettingsState {
-  settings: EditorSettings;
-  updateSettings: (newSettings: Partial<EditorSettings>) => void;
-  appTheme: 'dark' | 'light';
-  toggleAppTheme: () => void;
-}
-
-export const useSettingsStore = create<SettingsState>()(
+export const useSettingsStore = create(
   persist(
     (set) => ({
       settings: {

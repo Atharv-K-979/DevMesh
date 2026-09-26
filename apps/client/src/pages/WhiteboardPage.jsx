@@ -4,10 +4,9 @@ import * as Y from 'yjs';
 import { HocuspocusProvider } from '@hocuspocus/provider';
 import { IndexeddbPersistence } from 'y-indexeddb';
 import { WhiteboardPanel } from '@devmesh/ui';
-import { WhiteboardElement } from '@devmesh/shared-types';
 
-export const WhiteboardPage: React.FC = () => {
-  const { roomId } = useParams<{ roomId: string }>();
+export const WhiteboardPage = () => {
+  const { roomId } = useParams();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const username = searchParams.get('username') || 'Guest';
@@ -25,10 +24,10 @@ export const WhiteboardPage: React.FC = () => {
     return { doc: ydoc };
   }, [roomId]);
 
-  const [whiteboardElements, setWhiteboardElements] = useState<WhiteboardElement[]>([]);
+  const [whiteboardElements, setWhiteboardElements] = useState([]);
 
   useEffect(() => {
-    const wbArray = doc.getArray<WhiteboardElement>('whiteboardElements');
+    const wbArray = doc.getArray('whiteboardElements');
     const updateWb = () => {
       setWhiteboardElements(wbArray.toArray());
     };
@@ -39,8 +38,8 @@ export const WhiteboardPage: React.FC = () => {
     };
   }, [doc]);
 
-  const handleElementsChange = (elements: WhiteboardElement[]) => {
-    const wbArray = doc.getArray<WhiteboardElement>('whiteboardElements');
+  const handleElementsChange = (elements) => {
+    const wbArray = doc.getArray('whiteboardElements');
     doc.transact(() => {
       wbArray.delete(0, wbArray.length);
       wbArray.push(elements);

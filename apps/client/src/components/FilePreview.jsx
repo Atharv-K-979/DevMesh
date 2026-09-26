@@ -1,15 +1,6 @@
 import React, { useState } from 'react';
 
-interface FilePreviewProps {
-  setFilePreview: (show: boolean) => void;
-  fileContent: string;
-  currentCode?: string;
-  resetFileInput: () => void;
-  onAppend: () => void;
-  onReplace: () => void;
-}
-
-export const FilePreview: React.FC<FilePreviewProps> = ({
+export const FilePreview = ({
   setFilePreview,
   fileContent,
   currentCode = '',
@@ -17,7 +8,7 @@ export const FilePreview: React.FC<FilePreviewProps> = ({
   onAppend,
   onReplace,
 }) => {
-  const [viewMode, setViewMode] = useState<'diff' | 'raw'>('diff');
+  const [viewMode, setViewMode] = useState('diff');
 
   const handleClose = () => {
     setFilePreview(false);
@@ -30,7 +21,7 @@ export const FilePreview: React.FC<FilePreviewProps> = ({
         {/* Modal Header */}
         <div className="px-6 py-3.5 border-b border-gray-800 flex justify-between items-center bg-gray-950">
           <div className="flex items-center gap-3">
-            <h3 className="text-sm font-bold text-gray-100 tracking-wider">File Diff & Preview</h3>
+            <h3 className="text-sm font-bold text-gray-100 tracking-wider">File Diff &amp; Preview</h3>
             <div className="flex items-center bg-gray-900 border border-gray-800 rounded-lg p-0.5">
               <button
                 onClick={() => setViewMode('diff')}

@@ -1,68 +1,49 @@
 import React, { useEffect, useState, useImperativeHandle, forwardRef, useMemo } from 'react';
 import CodeMirror, { EditorView } from '@uiw/react-codemirror';
-import { loadLanguage, LanguageName } from '@uiw/codemirror-extensions-langs';
+import { loadLanguage } from '@uiw/codemirror-extensions-langs';
 import * as themes from '@uiw/codemirror-themes-all';
-import { Extension } from '@codemirror/state';
 import { indentUnit } from '@codemirror/language';
 import * as Y from 'yjs';
 import { HocuspocusProvider } from '@hocuspocus/provider';
 import { yCollab } from 'y-codemirror.next';
 
-export interface EditorRef {
-  setCode: (code: string) => void;
-}
-
-interface EditorProps {
-  doc: Y.Doc;
-  provider: HocuspocusProvider;
-  activeFilePath: string;
-  username: string;
-  language: string;
-  theme: string;
-  fontSize?: number;
-  fontFamily?: string;
-  tabSize?: number;
-  lineWrapping?: boolean;
-  onCodeChange?: (code: string) => void;
-}
-
-const detectLanguage = (filePath: string, fallbackLang: string): LanguageName => {
+const detectLanguage = (filePath, fallbackLang) => {
   const ext = filePath.split('.').pop()?.toLowerCase();
   switch (ext) {
     case 'ts':
     case 'tsx':
-      return 'typescript' as LanguageName;
+      return 'typescript';
     case 'js':
     case 'jsx':
-      return 'javascript' as LanguageName;
+      return 'javascript';
     case 'py':
-      return 'python' as LanguageName;
+      return 'python';
     case 'cpp':
     case 'cc':
     case 'c':
     case 'h':
     case 'hpp':
-      return 'cpp' as LanguageName;
+      return 'cpp';
     case 'java':
-      return 'java' as LanguageName;
+      return 'java';
     case 'html':
-      return 'html' as LanguageName;
+      return 'html';
     case 'css':
-      return 'css' as LanguageName;
+      return 'css';
     case 'json':
-      return 'json' as LanguageName;
+      return 'json';
     case 'md':
-      return 'markdown' as LanguageName;
+      return 'markdown';
     case 'sql':
-      return 'sql' as LanguageName;
+      return 'sql';
     case 'rs':
-      return 'rust' as LanguageName;
+      return 'rust';
     case 'go':
-      return 'go' as LanguageName;
+      return 'go';
     default:
-      if (fallbackLang === 'clike') return 'cpp' as LanguageName;
-      if (fallbackLang === 'htmlmixed') return 'html' as LanguageName;
-      return (fallbackLang as LanguageName) || ('javascript' as LanguageName);
+      if (fallbackLang === 'clike') return 'cpp';
+      if (fallbackLang === 'htmlmixed') return 'html';
+      return fallbackLang || 'javascript';
   }
 };
 
@@ -71,7 +52,7 @@ const USER_COLORS = [
   '#ec4899', '#ef4444', '#06b6d4', '#84cc16'
 ];
 
-const getRandomColor = (name: string) => {
+const getRandomColor = (name) => {
   let hash = 0;
   for (let i = 0; i < name.length; i++) {
     hash = name.charCodeAt(i) + ((hash << 5) - hash);
@@ -80,9 +61,9 @@ const getRandomColor = (name: string) => {
   return USER_COLORS[index];
 };
 
-export const Editor = forwardRef<EditorRef, EditorProps>(
+export const Editor = forwardRef(
   ({ doc, provider, activeFilePath, username, language, theme, fontSize = 14, fontFamily = 'monospace', tabSize = 2, lineWrapping = true, onCodeChange }, ref) => {
-    const [crdtExtension, setCrdtExtension] = useState<Extension | null>(null);
+    const [crdtExtension, setCrdtExtension] = useState(null);
 
     useEffect(() => {
       if (!provider || !provider.awareness) return;
@@ -112,7 +93,7 @@ export const Editor = forwardRef<EditorRef, EditorProps>(
     }, [doc, provider, activeFilePath, username, onCodeChange]);
 
     useImperativeHandle(ref, () => ({
-      setCode: (newCode: string) => {
+      setCode: (newCode) => {
         const yText = doc.getText(`file:${activeFilePath}`);
         doc.transact(() => {
           yText.delete(0, yText.length);
@@ -146,7 +127,7 @@ export const Editor = forwardRef<EditorRef, EditorProps>(
     }, [fontSize, fontFamily]);
 
     const extensions = useMemo(() => {
-      const exts: Extension[] = [fontTheme];
+      const exts = [fontTheme];
       exts.push(indentUnit.of(' '.repeat(tabSize)));
       if (lineWrapping) exts.push(EditorView.lineWrapping);
       if (langExt) exts.push(langExt);
@@ -154,8 +135,7 @@ export const Editor = forwardRef<EditorRef, EditorProps>(
       return exts;
     }, [langExt, crdtExtension, fontTheme, tabSize, lineWrapping]);
 
-    const themesMap = themes as unknown as Record<string, Extension>;
-    const selectedTheme = themesMap[theme] || themesMap.dracula;
+    const selectedTheme = themes[theme] || themes.dracula;
 
     return (
       <div

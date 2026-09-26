@@ -7,12 +7,10 @@ import { HocuspocusProvider } from '@hocuspocus/provider';
 import { IndexeddbPersistence } from 'y-indexeddb';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
-import { Socket } from 'socket.io-client';
 import {
   FileTree,
   PresenceBar,
   ToolsPanel,
-  ActiveTool,
   EditorSettingsPanel,
   ChatPanel,
   CallPanel,
@@ -25,38 +23,21 @@ import {
   CodeRunnerPanel,
   SnippetsPanel,
 } from '@devmesh/ui';
-import {
-  ClientInfo,
-  ChatMessage,
-  ChatHistoryPayload,
-  JoinedPayload,
-  DisconnectedPayload,
-  LiveKitTokenResponse,
-  SessionRecording,
-  AiCompletionRequest,
-  AiCompletionResponse,
-  WhiteboardElement,
-  SocketActions,
-  CommandPaletteAction,
-  CodeExecutionRequest,
-  CodeExecutionResult,
-  UserRole,
-  RoleChangePayload,
-} from '@devmesh/shared-types';
+import { SocketActions } from '@devmesh/shared-types';
 import { initSocket } from '../socket';
-import { Editor, EditorRef } from '../components/Editor';
+import { Editor } from '../components/Editor';
 import { FilePreview } from '../components/FilePreview';
 import { useSettingsStore } from '../store/settingsStore';
 import { useWorkspaceStore } from '../store/workspaceStore';
 
-export const EditorPage: React.FC = () => {
-  const { roomId = 'default-room' } = useParams<{ roomId: string }>();
+export const EditorPage = () => {
+  const { roomId = 'default-room' } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
 
-  const username = (location.state as any)?.username || 'Guest';
+  const username = location.state?.username || 'Guest';
 
-  const [activeTool, setActiveTool] = useState<ActiveTool>('files');
+  const [activeTool, setActiveTool] = useState('files');
   const {
     files,
     activeFile,
@@ -68,23 +49,23 @@ export const EditorPage: React.FC = () => {
     openTab,
     closeTab,
   } = useWorkspaceStore();
-  const [clients, setClients] = useState<ClientInfo[]>([]);
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
-  const [mutedUserSockets, setMutedUserSockets] = useState<string[]>([]);
-  const [recordings, setRecordings] = useState<SessionRecording[]>([]);
-  const [isRecording, setIsRecording] = useState<boolean>(false);
+  const [clients, setClients] = useState([]);
+  const [chatMessages, setChatMessages] = useState([]);
+  const [mutedUserSockets, setMutedUserSockets] = useState([]);
+  const [recordings, setRecordings] = useState([]);
+  const [isRecording, setIsRecording] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
-  const [userRole, setUserRole] = useState<UserRole>('editor');
+  const [userRole, setUserRole] = useState('editor');
 
-  const socketRef = useRef<Socket | null>(null);
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const [filePreview, setFilePreview] = useState<boolean>(false);
-  const [fileContent, setFileContent] = useState<string>('');
-  const editorInstanceRef = useRef<EditorRef | null>(null);
-  const codeRef = useRef<string>('');
-  const activeRecordingIdRef = useRef<string | null>(null);
-  const recentlyNotifiedJoinsRef = useRef<Set<string>>(new Set());
-  const recentlyNotifiedLeavesRef = useRef<Set<string>>(new Set());
+  const socketRef = useRef(null);
+  const fileInputRef = useRef(null);
+  const [filePreview, setFilePreview] = useState(false);
+  const [fileContent, setFileContent] = useState('');
+  const editorInstanceRef = useRef(null);
+  const codeRef = useRef('');
+  const activeRecordingIdRef = useRef(null);
+  const recentlyNotifiedJoinsRef = useRef(new Set());
+  const recentlyNotifiedLeavesRef = useRef(new Set());
 
   const { settings, updateSettings, appTheme, toggleAppTheme } = useSettingsStore();
 
@@ -103,8 +84,8 @@ export const EditorPage: React.FC = () => {
 
   // Synchronize multi-file tree across room participants
   useEffect(() => {
-    const filesArray = doc.getArray<string>('projectFiles');
-    let initTimer: ReturnType<typeof setTimeout> | null = null;
+    const filesArray = doc.getArray('projectFiles');
+    let initTimer = null;
 
     const updateFilesList = () => {
       const raw = filesArray.toArray();
@@ -147,10 +128,10 @@ export const EditorPage: React.FC = () => {
   }, [doc, provider, activeFile]);
 
   // Synchronize whiteboard elements across room participants
-  const [whiteboardElements, setWhiteboardElements] = useState<WhiteboardElement[]>([]);
+  const [whiteboardElements, setWhiteboardElements] = useState([]);
 
   useEffect(() => {
-    const wbArray = doc.getArray<WhiteboardElement>('whiteboardElements');
+    const wbArray = doc.getArray('whiteboardElements');
     const updateWb = () => {
       setWhiteboardElements(wbArray.toArray());
     };
@@ -161,15 +142,15 @@ export const EditorPage: React.FC = () => {
     };
   }, [doc]);
 
-  const handleWhiteboardChange = (elements: WhiteboardElement[]) => {
-    const wbArray = doc.getArray<WhiteboardElement>('whiteboardElements');
+  const handleWhiteboardChange = (elements) => {
+    const wbArray = doc.getArray('whiteboardElements');
     doc.transact(() => {
       wbArray.delete(0, wbArray.length);
       wbArray.push(elements);
     });
   };
 
-  const recordEvent = async (type: 'code' | 'chat' | 'presence', author: string, detail: string) => {
+  const recordEvent = async (type, author, detail) => {
     if (!activeRecordingIdRef.current) return;
     try {
       const apiHost = import.meta.env.VITE_API_URL || 'http://localhost:3001';
@@ -209,12 +190,12 @@ export const EditorPage: React.FC = () => {
     socket.off(SocketActions.USER_KICK);
     socket.off(SocketActions.USER_ROLE_CHANGE);
 
-    socket.on('connect_error', (err: any) => {
+    socket.on('connect_error', (err) => {
       console.error('socket error', err);
       toast.error('Socket connection failed, try again later.');
       navigate('/');
     });
-    socket.on('connect_failed', (err: any) => {
+    socket.on('connect_failed', (err) => {
       console.error('socket error', err);
       toast.error('Socket connection failed, try again later.');
       navigate('/');
@@ -222,47 +203,41 @@ export const EditorPage: React.FC = () => {
 
     socket.emit(SocketActions.JOIN, { roomId, username });
 
-    socket.on(
-      SocketActions.JOINED,
-      ({ clients: updatedClients, username: joinedUser }: JoinedPayload) => {
-        if (joinedUser !== username && !recentlyNotifiedJoinsRef.current.has(joinedUser)) {
-          recentlyNotifiedJoinsRef.current.add(joinedUser);
-          toast.success(`${joinedUser} joined the room.`, { id: `join-${joinedUser}` });
-          setTimeout(() => { recentlyNotifiedJoinsRef.current.delete(joinedUser); }, 4000);
-        }
+    socket.on(SocketActions.JOINED, ({ clients: updatedClients, username: joinedUser }) => {
+      if (joinedUser !== username && !recentlyNotifiedJoinsRef.current.has(joinedUser)) {
+        recentlyNotifiedJoinsRef.current.add(joinedUser);
+        toast.success(`${joinedUser} joined the room.`, { id: `join-${joinedUser}` });
+        setTimeout(() => { recentlyNotifiedJoinsRef.current.delete(joinedUser); }, 4000);
+      }
+      const uniqueClients = updatedClients.filter(
+        (c, idx, self) => idx === self.findIndex((item) => item.username === c.username)
+      );
+      setClients(uniqueClients);
+      recordEvent('presence', joinedUser, `${joinedUser} joined room`);
+    });
+
+    socket.on(SocketActions.DISCONNECTED, ({ socketId, username: leftUser, clients: updatedClients }) => {
+      if (leftUser && !recentlyNotifiedLeavesRef.current.has(leftUser)) {
+        recentlyNotifiedLeavesRef.current.add(leftUser);
+        toast.success(`${leftUser} left the room.`, { id: `leave-${leftUser}` });
+        setTimeout(() => { recentlyNotifiedLeavesRef.current.delete(leftUser); }, 4000);
+        recordEvent('presence', leftUser, `${leftUser} left room`);
+      }
+      if (updatedClients && updatedClients.length >= 0) {
         const uniqueClients = updatedClients.filter(
           (c, idx, self) => idx === self.findIndex((item) => item.username === c.username)
         );
         setClients(uniqueClients);
-        recordEvent('presence', joinedUser, `${joinedUser} joined room`);
-      },
-    );
+      } else {
+        setClients((prev) => prev.filter((c) => c.socketId !== socketId));
+      }
+    });
 
-    socket.on(
-      SocketActions.DISCONNECTED,
-      ({ socketId, username: leftUser, clients: updatedClients }: DisconnectedPayload) => {
-        if (leftUser && !recentlyNotifiedLeavesRef.current.has(leftUser)) {
-          recentlyNotifiedLeavesRef.current.add(leftUser);
-          toast.success(`${leftUser} left the room.`, { id: `leave-${leftUser}` });
-          setTimeout(() => { recentlyNotifiedLeavesRef.current.delete(leftUser); }, 4000);
-          recordEvent('presence', leftUser, `${leftUser} left room`);
-        }
-        if (updatedClients && updatedClients.length >= 0) {
-          const uniqueClients = updatedClients.filter(
-            (c, idx, self) => idx === self.findIndex((item) => item.username === c.username)
-          );
-          setClients(uniqueClients);
-        } else {
-          setClients((prev) => prev.filter((c) => c.socketId !== socketId));
-        }
-      },
-    );
-
-    socket.on(SocketActions.CHAT_HISTORY, ({ messages }: ChatHistoryPayload) => {
+    socket.on(SocketActions.CHAT_HISTORY, ({ messages }) => {
       setChatMessages(messages);
     });
 
-    socket.on(SocketActions.CHAT_BROADCAST, (msg: ChatMessage) => {
+    socket.on(SocketActions.CHAT_BROADCAST, (msg) => {
       setChatMessages((prev) => {
         if (prev.some((m) => m.id === msg.id)) return prev;
         return [...prev, msg];
@@ -278,7 +253,7 @@ export const EditorPage: React.FC = () => {
       }
     });
 
-    socket.on(SocketActions.RECORDING_NOTIFY, (payload: any) => {
+    socket.on(SocketActions.RECORDING_NOTIFY, (payload) => {
       if (payload.action === 'start') {
         toast(`${payload.username} started session recording`, { icon: '🔴' });
       } else {
@@ -286,7 +261,7 @@ export const EditorPage: React.FC = () => {
       }
     });
 
-    socket.on(SocketActions.USER_MUTE, (payload: any) => {
+    socket.on(SocketActions.USER_MUTE, (payload) => {
       if (payload.mute) {
         setMutedUserSockets((prev) => [...new Set([...prev, payload.targetSocketId])]);
         if (payload.targetSocketId === socket.id) {
@@ -300,7 +275,7 @@ export const EditorPage: React.FC = () => {
       }
     });
 
-    socket.on(SocketActions.USER_KICK, (payload: any) => {
+    socket.on(SocketActions.USER_KICK, (payload) => {
       if (payload.targetSocketId === socket.id) {
         toast.error(`You were removed from the room by host ${payload.byUsername}`);
         setTimeout(() => navigate('/'), 1200);
@@ -310,7 +285,7 @@ export const EditorPage: React.FC = () => {
       }
     });
 
-    socket.on(SocketActions.USER_ROLE_CHANGE, (payload: RoleChangePayload) => {
+    socket.on(SocketActions.USER_ROLE_CHANGE, (payload) => {
       if (payload.targetSocketId === socket.id) {
         setUserRole(payload.role);
         toast(`Your role was changed to ${payload.role.toUpperCase()}`, { icon: '🛡️' });
@@ -327,7 +302,7 @@ export const EditorPage: React.FC = () => {
     };
   }, [roomId, username, navigate]);
 
-  const updateEditorCode = useCallback((newCode: string) => {
+  const updateEditorCode = useCallback((newCode) => {
     editorInstanceRef.current?.setCode(newCode);
     codeRef.current = newCode;
   }, []);
@@ -352,7 +327,7 @@ export const EditorPage: React.FC = () => {
 
   // Global Keyboard Shortcuts
   useEffect(() => {
-    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+    const handleGlobalKeyDown = (e) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
         setIsCommandPaletteOpen((prev) => !prev);
@@ -370,12 +345,12 @@ export const EditorPage: React.FC = () => {
     return <Navigate to="/" />;
   }
 
-  const handleSelectFile = (path: string) => {
+  const handleSelectFile = (path) => {
     setActiveFile(path);
   };
 
-  const handleCreateFile = (filePath: string) => {
-    const filesArray = doc.getArray<string>('projectFiles');
+  const handleCreateFile = (filePath) => {
+    const filesArray = doc.getArray('projectFiles');
     const trimmed = filePath.trim();
     if (!trimmed) return;
     if (!filesArray.toArray().includes(trimmed)) {
@@ -388,13 +363,13 @@ export const EditorPage: React.FC = () => {
     }
   };
 
-  const handleCreateFolder = (folderPath: string) => {
+  const handleCreateFolder = (folderPath) => {
     const placeholder = `${folderPath}/index.ts`;
     handleCreateFile(placeholder);
   };
 
-  const handleDeleteFile = (filePath: string) => {
-    const filesArray = doc.getArray<string>('projectFiles');
+  const handleDeleteFile = (filePath) => {
+    const filesArray = doc.getArray('projectFiles');
     const current = filesArray.toArray();
     const index = current.indexOf(filePath);
     if (index !== -1 && current.length > 1) {
@@ -408,8 +383,8 @@ export const EditorPage: React.FC = () => {
     }
   };
 
-  const handleRenameFile = (oldPath: string, newPath: string) => {
-    const filesArray = doc.getArray<string>('projectFiles');
+  const handleRenameFile = (oldPath, newPath) => {
+    const filesArray = doc.getArray('projectFiles');
     const current = filesArray.toArray();
     const index = current.indexOf(oldPath);
     if (index !== -1 && newPath && !current.includes(newPath)) {
@@ -438,11 +413,11 @@ export const EditorPage: React.FC = () => {
     toast.success('Exported project zip');
   };
 
-  const handleImportZip = async (file: File) => {
+  const handleImportZip = async (file) => {
     try {
       const zip = await JSZip.loadAsync(file);
-      const filesArray = doc.getArray<string>('projectFiles');
-      const newPaths: string[] = [];
+      const filesArray = doc.getArray('projectFiles');
+      const newPaths = [];
       const entries = Object.entries(zip.files);
 
       for (const [relativePath, zipEntry] of entries) {
@@ -471,12 +446,12 @@ export const EditorPage: React.FC = () => {
     }
   };
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = (event) => {
     const file = event.target.files?.[0];
     if (file) {
       const reader = new FileReader();
       reader.onload = (e) => {
-        const content = e.target?.result as string;
+        const content = e.target?.result;
         setFileContent(content);
         setFilePreview(true);
       };
@@ -504,7 +479,7 @@ export const EditorPage: React.FC = () => {
     resetFileInput();
   };
 
-  const handleSendChatMessage = (content: string) => {
+  const handleSendChatMessage = (content) => {
     if (socketRef.current) {
       socketRef.current.emit(SocketActions.CHAT_SEND, {
         roomId,
@@ -514,7 +489,7 @@ export const EditorPage: React.FC = () => {
     }
   };
 
-  const handleFetchLiveKitToken = async (): Promise<LiveKitTokenResponse> => {
+  const handleFetchLiveKitToken = async () => {
     const apiHost = import.meta.env.VITE_API_URL || 'http://localhost:3001';
     const res = await fetch(`${apiHost}/api/livekit/token`, {
       method: 'POST',
@@ -524,10 +499,10 @@ export const EditorPage: React.FC = () => {
         participantName: username,
       }),
     });
-    return (await res.json()) as LiveKitTokenResponse;
+    return await res.json();
   };
 
-  const handleMuteUser = (targetSocketId: string, targetUsername: string, mute: boolean) => {
+  const handleMuteUser = (targetSocketId, targetUsername, mute) => {
     socketRef.current?.emit(SocketActions.USER_MUTE, {
       roomId,
       targetSocketId,
@@ -546,7 +521,7 @@ export const EditorPage: React.FC = () => {
     toast.success('Muted all participants');
   };
 
-  const handleKickUser = (targetSocketId: string, targetUsername: string) => {
+  const handleKickUser = (targetSocketId, targetUsername) => {
     socketRef.current?.emit(SocketActions.USER_KICK, {
       roomId,
       targetSocketId,
@@ -555,7 +530,7 @@ export const EditorPage: React.FC = () => {
     });
   };
 
-  const handleRoleChange = (targetSocketId: string, targetUsername: string, role: UserRole) => {
+  const handleRoleChange = (targetSocketId, targetUsername, role) => {
     socketRef.current?.emit(SocketActions.USER_ROLE_CHANGE, {
       roomId,
       targetSocketId,
@@ -566,7 +541,7 @@ export const EditorPage: React.FC = () => {
     toast.success(`Updated role for ${targetUsername} to ${role}`);
   };
 
-  const handleRunAiAction = async (req: AiCompletionRequest): Promise<AiCompletionResponse> => {
+  const handleRunAiAction = async (req) => {
     const apiHost = import.meta.env.VITE_API_URL || 'http://localhost:3001';
     const res = await fetch(`${apiHost}/api/ai/completion`, {
       method: 'POST',
@@ -579,14 +554,14 @@ export const EditorPage: React.FC = () => {
     return await res.json();
   };
 
-  const handleInsertAiCode = (codeSnippet: string) => {
+  const handleInsertAiCode = (codeSnippet) => {
     const current = codeRef.current || '';
     const updated = current ? `${current}\n\n${codeSnippet}` : codeSnippet;
     updateEditorCode(updated);
     toast.success('Inserted snippet into editor');
   };
 
-  const handleExecuteCodeApi = async (req: CodeExecutionRequest): Promise<CodeExecutionResult> => {
+  const handleExecuteCodeApi = async (req) => {
     const apiHost = import.meta.env.VITE_API_URL || 'http://localhost:3001';
     const res = await fetch(`${apiHost}/api/runner/execute`, {
       method: 'POST',
@@ -599,7 +574,7 @@ export const EditorPage: React.FC = () => {
     return await res.json();
   };
 
-  const handleStartRecording = async (customTitle?: string): Promise<string> => {
+  const handleStartRecording = async (customTitle) => {
     const apiHost = import.meta.env.VITE_API_URL || 'http://localhost:3001';
     const res = await fetch(`${apiHost}/api/recordings/start`, {
       method: 'POST',
@@ -622,7 +597,7 @@ export const EditorPage: React.FC = () => {
     return data.recordingId;
   };
 
-  const handleStopRecording = async (recordingId?: string): Promise<void> => {
+  const handleStopRecording = async (recordingId) => {
     const id = recordingId || activeRecordingIdRef.current;
     if (!id) return;
     const apiHost = import.meta.env.VITE_API_URL || 'http://localhost:3001';
@@ -646,21 +621,21 @@ export const EditorPage: React.FC = () => {
     navigate('/');
   };
 
-  const handleFetchRecordings = async (): Promise<SessionRecording[]> => {
+  const handleFetchRecordings = async () => {
     const apiHost = import.meta.env.VITE_API_URL || 'http://localhost:3001';
     const res = await fetch(`${apiHost}/api/recordings/room/${roomId || 'default-room'}`);
     const data = await res.json();
     return data.recordings || [];
   };
 
-  const handleDeleteRecording = async (recordingId: string): Promise<void> => {
+  const handleDeleteRecording = async (recordingId) => {
     const apiHost = import.meta.env.VITE_API_URL || 'http://localhost:3001';
     await fetch(`${apiHost}/api/recordings/${recordingId}`, { method: 'DELETE' });
     toast.success('Session recording deleted');
   };
 
   // Command Palette Actions
-  const commandPaletteActions: CommandPaletteAction[] = [
+  const commandPaletteActions = [
     {
       id: 'cmd-copy-room',
       title: 'Copy Room ID',

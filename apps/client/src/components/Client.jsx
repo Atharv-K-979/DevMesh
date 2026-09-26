@@ -1,11 +1,7 @@
 import React from 'react';
 import Avatar from 'react-avatar';
 
-interface ClientProps {
-  username: string;
-}
-
-export const Client: React.FC<ClientProps> = ({ username }) => {
+export const Client = ({ username }) => {
   return (
     <div className="flex items-center gap-3 p-2 bg-gray-800 rounded-lg border border-gray-700">
       <Avatar name={username} size="36" round="8px" />

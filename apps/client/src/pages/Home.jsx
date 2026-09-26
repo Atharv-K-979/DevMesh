@@ -4,12 +4,12 @@ import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 
-export const Home: React.FC = () => {
+export const Home = () => {
   const navigate = useNavigate();
   const { user, login } = useAuthStore();
   const [roomId, setRoomId] = useState('');
   const [username, setUsername] = useState('');
-  const [recentRooms, setRecentRooms] = useState<string[]>([]);
+  const [recentRooms, setRecentRooms] = useState([]);
 
   useEffect(() => {
     if (user?.username) {
@@ -25,20 +25,20 @@ export const Home: React.FC = () => {
     }
   }, [user]);
 
-  const saveRecentRoom = (id: string) => {
+  const saveRecentRoom = (id) => {
     const updated = [id, ...recentRooms.filter((r) => r !== id)].slice(0, 4);
     setRecentRooms(updated);
     localStorage.setItem('devmesh_recent_rooms', JSON.stringify(updated));
   };
 
-  const createNewRoom = (e: React.MouseEvent<HTMLAnchorElement | HTMLButtonElement>) => {
+  const createNewRoom = (e) => {
     e.preventDefault();
     const id = uuidV4();
     setRoomId(id);
     toast.success('Generated a new room ID');
   };
 
-  const joinRoom = async (overrideRoomId?: string) => {
+  const joinRoom = async (overrideRoomId) => {
     const targetRoom = (overrideRoomId || roomId).trim();
     const targetUser = username.trim();
 
@@ -55,7 +55,7 @@ export const Home: React.FC = () => {
     });
   };
 
-  const handleInputEnter = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleInputEnter = (e) => {
     if (e.key === 'Enter') {
       joinRoom();
     }

@@ -1,29 +1,13 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { UserRole } from '@devmesh/shared-types';
 
-export interface AuthUser {
-  id: string;
-  username: string;
-  role?: UserRole;
-}
-
-interface AuthState {
-  user: AuthUser | null;
-  token: string | null;
-  isAuthenticated: boolean;
-  login: (username: string, password?: string) => Promise<void>;
-  logout: () => void;
-  setUser: (user: AuthUser, token?: string) => void;
-}
-
-export const useAuthStore = create<AuthState>()(
+export const useAuthStore = create(
   persist(
     (set) => ({
       user: null,
       token: null,
       isAuthenticated: false,
-      login: async (username: string) => {
+      login: async (username) => {
         try {
           const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
           const res = await fetch(`${apiUrl}/api/auth/login`, {

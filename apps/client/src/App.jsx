@@ -5,7 +5,7 @@ import Home from './pages/Home';
 import EditorPage from './pages/EditorPage';
 import WhiteboardPage from './pages/WhiteboardPage';
 
-const App: React.FC = () => {
+const App = () => {
   return (
     <>
       <Toaster
