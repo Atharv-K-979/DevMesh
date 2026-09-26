@@ -12,8 +12,12 @@ export enum SocketActions {
   RECORDING_NOTIFY = 'recording-notify',
   USER_MUTE = 'user-mute',
   USER_KICK = 'user-kick',
+  USER_ROLE_CHANGE = 'user-role-change',
   FILE_TREE_UPDATE = 'file-tree:update',
   CURSOR_AWARENESS = 'cursor-awareness',
+  CURSOR_MOVE = 'cursor-move',
+  CODE_EXECUTE = 'code:execute',
+  CODE_EXECUTE_RESULT = 'code:execute-result',
 }
 
 // User and Session definitions
@@ -42,12 +46,21 @@ export interface RoomParticipant extends ClientInfo {
   isScreenSharing?: boolean;
 }
 
+export interface RoomSettings {
+  isPrivate?: boolean;
+  allowGuests?: boolean;
+  defaultRole?: UserRole;
+  language?: string;
+  maxParticipants?: number;
+}
+
 export interface Room {
   roomId: string;
   name?: string;
   ownerId?: string;
   users: User[];
   createdAt?: number;
+  settings?: RoomSettings;
 }
 
 // Socket Payloads
@@ -82,6 +95,28 @@ export interface SyncCodePayload {
   filePath?: string;
 }
 
+export interface CursorPosition {
+  line: number;
+  column: number;
+  filePath?: string;
+}
+
+export interface CursorMovePayload {
+  roomId: string;
+  socketId: string;
+  username: string;
+  color: string;
+  cursor: CursorPosition;
+}
+
+export interface RoleChangePayload {
+  roomId: string;
+  targetSocketId: string;
+  targetUsername: string;
+  role: UserRole;
+  byUsername: string;
+}
+
 // Chat and Messaging
 export interface ChatMessage {
   id: string;
@@ -91,6 +126,7 @@ export interface ChatMessage {
   content: string;
   timestamp: number;
   mentions?: string[];
+  reactions?: Record<string, string[]>; // emoji -> usernames[]
 }
 
 export interface SendChatMessagePayload {
@@ -158,7 +194,7 @@ export interface LiveKitTokenResponse {
 }
 
 // Session Recording and Replay
-export type RecordingEventType = 'code' | 'chat' | 'presence' | 'whiteboard' | 'file';
+export type RecordingEventType = 'code' | 'chat' | 'presence' | 'whiteboard' | 'file' | 'execution';
 
 export interface RecordingEvent {
   timestamp: number;
@@ -213,7 +249,7 @@ export interface AiCompletionResponse {
 }
 
 // Collaborative Whiteboard
-export type WhiteboardTool = 'pencil' | 'rectangle' | 'circle' | 'text' | 'eraser';
+export type WhiteboardTool = 'pencil' | 'line' | 'rectangle' | 'circle' | 'text' | 'eraser';
 
 export interface WhiteboardPoint {
   x: number;
@@ -228,9 +264,12 @@ export interface WhiteboardElement {
   y?: number;
   width?: number;
   height?: number;
+  x2?: number;
+  y2?: number;
   text?: string;
   color: string;
   strokeWidth: number;
+  fill?: boolean;
 }
 
 export interface WhiteboardState {
@@ -258,4 +297,43 @@ export interface AuthLoginResponse {
     username: string;
     role?: UserRole;
   };
+}
+
+// Code Execution & Runner
+export interface CodeExecutionRequest {
+  language: string;
+  code: string;
+  input?: string;
+  roomId?: string;
+}
+
+export interface CodeExecutionResult {
+  stdout: string;
+  stderr: string;
+  exitCode: number;
+  executionTimeMs: number;
+  timestamp: number;
+}
+
+// Code Snippets
+export interface CodeSnippet {
+  id: string;
+  title: string;
+  description: string;
+  language: string;
+  code: string;
+  tags: string[];
+  author?: string;
+  createdAt: number;
+}
+
+// Command Palette Actions
+export interface CommandPaletteAction {
+  id: string;
+  title: string;
+  description?: string;
+  shortcut?: string;
+  category: 'Editor' | 'Collaboration' | 'Navigation' | 'View' | 'AI';
+  icon?: string;
+  perform: () => void;
 }
